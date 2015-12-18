@@ -15,6 +15,8 @@ namespace ISUE {
       {
 
       }
+
+      // void train_recurse(Node *head, set<LabeledData*> S)
     private:
       Node *root;
     };

@@ -38,8 +38,9 @@ int main(int argc, char *argv[]) {
   Forest *forest = new Forest(data, settings);
 
   // train forest
+  forest->Train();
 
-  // test forest
+  // test forest with random data 
 
   return 0;
 }
