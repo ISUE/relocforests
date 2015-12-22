@@ -27,6 +27,9 @@ namespace ISUE {
         delete data_;
         delete settings_;
         delete random_;
+        for (auto t : forest_)
+          delete t;
+        forest_.clear();
       }
 
       void Train()
@@ -53,7 +56,6 @@ namespace ISUE {
 
               cv::Point3f label(X, Y, Z);
               // convert to world coordinates
-              label = label * data_->poses_.at(curr_frame);
 
               // store labeled pixel
               LabeledPixel pixel(curr_frame, cv::Point2i(x, y), label);
