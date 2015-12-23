@@ -63,8 +63,8 @@ namespace ISUE {
             }
 
           }
-          // train tree with set of pixel recursively
-          t->Train(labeled_data, random_, settings_->image_width_, settings_->image_height_);
+          // train tree with set of pixels recursively
+          t->Train(data_, labeled_data, random_, settings_->image_width_, settings_->image_height_);
         }
       }
 
