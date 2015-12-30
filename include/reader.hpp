@@ -24,6 +24,11 @@ namespace ISUE {
       Reader(std::string path_to_assoc_file)
       {};
 
+      ~Reader()
+      {
+        delete data;
+      }
+
       Data* GetData()
       {
         return data;
@@ -99,6 +104,8 @@ namespace ISUE {
             if (useColor) result->rgb_names_[i] = prefix + result->rgb_names_[i];
             */
           }
+
+          std::cout << "finished\n";
         }
       }
     private:

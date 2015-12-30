@@ -24,6 +24,7 @@ namespace ISUE {
       Node *left_;
       Node *right_;
       DepthAdaptiveRGB *feature_;
+      std::vector<LabeledPixel> distribution_;
     };
   }
 }

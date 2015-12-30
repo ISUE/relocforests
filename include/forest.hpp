@@ -24,8 +24,6 @@ namespace ISUE {
 
       ~Forest()
       {
-        delete data_;
-        delete settings_;
         delete random_;
         for (auto t : forest_)
           delete t;
@@ -64,7 +62,7 @@ namespace ISUE {
 
           }
           // train tree with set of pixels recursively
-          t->Train(data_, labeled_data, random_, settings_->image_width_, settings_->image_height_);
+          t->Train(data_, labeled_data, random_, settings_);
         }
       }
 

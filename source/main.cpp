@@ -25,14 +25,6 @@ int main(int argc, char *argv[]) {
 
   // settings for forest
   Settings *settings = new Settings();
-  settings->num_trees_ = 5;
-  settings->max_tree_depth_ = 16;
-  settings->num_frames_per_tree_ = 500;
-  settings->num_pixels_per_frame_ = 5000;
-  settings->image_width_ = 640;
-  settings->image_height_ = 480;
-  settings->depth_factor_ = 5000;
-
   settings->fx = 525.0;
   settings->fy = 525.0;
   settings->cx = 319.5;
@@ -47,6 +39,9 @@ int main(int argc, char *argv[]) {
   // test forest with random data 
 
   delete forest;
+  delete reader;
+  delete settings;
+
 
   return 0;
 }
