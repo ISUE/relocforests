@@ -27,7 +27,7 @@ namespace ISUE {
           return rgb_images_.at(frame);
         }
         else {
-          cv::Mat img = cv::imread(rgb_names_.at(frame));
+          cv::Mat img = cv::imread(path_to_assoc_file_ + rgb_names_.at(frame));
           rgb_images_.insert(std::pair<int, cv::Mat>(frame, img));
           return img;
         }
@@ -39,7 +39,7 @@ namespace ISUE {
           return depth_images_.at(frame);
         }
         else {
-          cv::Mat img = cv::imread(depth_names_.at(frame));
+          cv::Mat img = cv::imread(path_to_assoc_file_ + depth_names_.at(frame), CV_LOAD_IMAGE_ANYDEPTH);
           depth_images_.insert(std::pair<int, cv::Mat>(frame, img));
           return img;
         }

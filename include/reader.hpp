@@ -41,8 +41,6 @@ namespace ISUE {
         std::string path_to_assoc_file_ = path_to_data;
         CameraInfo startpos;
 
-        std::cout << path_to_assoc_file_ << "okay\n";
-
         std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d> > poses_from_assocfile;
 
         std::fstream associationFile;
@@ -51,7 +49,7 @@ namespace ISUE {
         std::string rgbName;
         float qx, qy, qz, qw, tx, ty, tz;
 
-        std::cout << "Trying to open: " << path_to_assoc_file_ + "associate.txt" << "\n";
+        std::cout << "[Reader] Opening: " << path_to_assoc_file_ + "associate.txt" << "\n";
 
         associationFile.open(path_to_assoc_file_ + "associate.txt", std::ios::in);
 
@@ -84,10 +82,10 @@ namespace ISUE {
             data->rgb_names_.push_back(rgbName);
           }
 
-          std::cout << "Read "
+          std::cout << "[Reader] Read "
             << data->depth_names_.size()
-            << " frames from association file: "
-            << path_to_assoc_file_ + "associate.txt" << ".\n";
+            << " frames from association file: \n"
+            << "\t" << path_to_assoc_file_ + "associate.txt" << ".\n";
 
           // intrinsics for kinect
           // todo: read from file but in general datasets are from kinect
@@ -105,7 +103,6 @@ namespace ISUE {
             */
           }
 
-          std::cout << "finished\n";
         }
       }
     private:

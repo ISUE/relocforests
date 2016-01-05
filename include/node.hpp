@@ -8,8 +8,10 @@ namespace ISUE {
     public:
       Node()
       {
+        parent_ = nullptr;
         left_ = nullptr;
         right_ = nullptr;
+        feature_ = nullptr;
       };
 
       ~Node()
@@ -19,8 +21,9 @@ namespace ISUE {
         delete feature_;
       }
 
-      bool is_leaf_;
-      bool is_split_;
+      bool is_leaf_ = false;
+      bool is_split_ = false;
+      Node *parent_;
       Node *left_;
       Node *right_;
       DepthAdaptiveRGB *feature_;

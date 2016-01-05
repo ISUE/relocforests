@@ -31,12 +31,14 @@ int main(int argc, char *argv[]) {
   settings->cy = 239.5;
 
   // Create forest
-  Forest *forest = new Forest(data, settings);
+  Forest *forest = new Forest(data, *settings);
 
   // train forest
   forest->Train();
 
   // test forest with random data 
+
+  cout << "Done Training.\n";
 
   delete forest;
   delete reader;
