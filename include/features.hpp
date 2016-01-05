@@ -13,7 +13,13 @@ namespace ISUE {
     public:
       Feature(cv::Point2i offset_1, cv::Point2i offset_2)
         : offset_1_(offset_1), offset_2_(offset_2) {};
+      /*
+        Returns a pair:
+          response value - float
+          validity of data point - bool
+       */
       virtual std::pair<float, bool> GetResponse(Data* data, LabeledPixel pixel) = 0;
+
     protected:
       cv::Point2i offset_1_;
       cv::Point2i offset_2_;
@@ -55,16 +61,14 @@ namespace ISUE {
 
       static DepthAdaptiveRGB* CreateRandom(Random *random, int image_width, int image_height)
       {
-        cv::Point2i offset_1(random->Next(-130, 130), random->Next(-130, 130)); // I believe this is correct
+        cv::Point2i offset_1(random->Next(-130, 130), random->Next(-130, 130)); // Value from the paper -- +/- 130 pixel meters
         cv::Point2i offset_2(random->Next(-130, 130), random->Next(-130, 130));
         int color_channel_1 = random->Next(0, 2);
         int color_channel_2 = random->Next(0, 2);
-        int tau_ = random->Next(0, 12); // todo figure out a good value
+        int tau_ = random->Next(0, 12); // todo figure out a good value, emperical
         return new DepthAdaptiveRGB(offset_1, offset_2, color_channel_1, color_channel_2, tau_);
       }
 
-      // todo settings
-      // returns 
       virtual std::pair<float, bool> GetResponse(Data* data, LabeledPixel pixel) override
       {
         cv::Mat depth_img = data->GetDepthImage(pixel.frame_);
@@ -74,8 +78,6 @@ namespace ISUE {
         float depth = (float)depth_at_pos;
 
         if (depth <= 0) {
-          depth = 6.0f;
-          // throw away point
           return std::pair<float, bool>(0.0f, false);
         }
         else {
@@ -90,23 +92,17 @@ namespace ISUE {
         cv::Point2i pos2 = pixel.pos_ + depth_inv_2;
 
         // check bounds
-        if (pos1.x >= 640.0 ||
-            pos1.y >= 480.0 ||
-            pos1.x < 0.0 ||
-            pos1.y < 0.0 ) {
+        if (pos1.x >= 640.0 || pos1.y >= 480.0 ||
+            pos1.x < 0.0    || pos1.y < 0.0 ) {
           return std::pair<float, bool>(0.0f, false);
-          // throw away
         }
-        if (pos2.x >= 640.0 ||
-          pos2.y >= 480.0 ||
-          pos2.x < 0.0 ||
-          pos2.y < 0.0) {
+        if (pos2.x >= 640.0 || pos2.y >= 480.0 ||
+            pos2.x < 0.0    || pos2.y < 0.0) {
           return std::pair<float, bool>(0.0f, false);
-          // throw away
         }
 
-        float I_1 = rgb_img.at<cv::Vec3b>(pixel.pos_ + depth_inv_1)[this->color_channel_1_];
-        float I_2 = rgb_img.at<cv::Vec3b>(pixel.pos_ + depth_inv_2)[this->color_channel_2_];
+        float I_1 = rgb_img.at<cv::Vec3b>(pos1)[this->color_channel_1_];
+        float I_2 = rgb_img.at<cv::Vec3b>(pos2)[this->color_channel_2_];
 
         return std::pair<float, bool>(I_1 - I_2, true);
       }

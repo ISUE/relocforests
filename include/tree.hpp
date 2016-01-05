@@ -22,6 +22,11 @@ namespace ISUE {
 
 
       enum OUT { LEFT, RIGHT, TRASH };
+
+      /*
+        Evaluates weak learner. Decides whether the point should go left or right.
+        Returns OUT enum value.
+       */
       OUT eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
       {
         auto response = feature->GetResponse(data, pixel);
@@ -54,7 +59,6 @@ namespace ISUE {
       }
 
 
-
       double objective_function(std::vector<LabeledPixel> data, std::vector<LabeledPixel> left, std::vector<LabeledPixel> right)
       {
         double var = variance(data);
@@ -71,13 +75,9 @@ namespace ISUE {
         return var - sum;
       }
 
-      int get_height(Node *node)
-      {
-        if (node == nullptr)
-          return 0;
-        return std::max(1 + get_height(node->left_), 1 + get_height(node->right_));
-      }
-
+      /*
+        Returns height from current node to root node.
+      */
       int traverse_to_root(Node *node) {
         if (node == nullptr)
           return 0;
@@ -96,6 +96,11 @@ namespace ISUE {
           node->distribution_ = S;
           return;
         }
+        else if (S.size() == 0) {
+          delete node;
+          node = nullptr;
+          return;
+        }
 
         node->is_split_ = true;
         node->is_leaf_ = false;
@@ -103,10 +108,12 @@ namespace ISUE {
         int num_candidates = 5;
         std::vector<DepthAdaptiveRGB*> candidate_params;
         std::vector<LabeledPixel> left_final, right_final;
-        double minimum_variation = DBL_MAX;
+        double minimum_objective = DBL_MAX;
         int feature = 0;
 
+
         for (int i = 0; i < num_candidates; ++i) {
+
           // add candidate
           candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random, settings->image_width_, settings->image_height_));
 
@@ -134,10 +141,11 @@ namespace ISUE {
 
           // eval tree training objective function and take best
           // todo: ensure objective function is correct
-          double variance = objective_function(S, left_data, right_data);
-          if (variance < minimum_variation) {
+          double objective = objective_function(S, left_data, right_data);
+
+          if (objective < minimum_objective) {
             feature = i;
-            minimum_variation = variance;
+            minimum_objective= objective;
             left_final = left_data;
             right_final = right_data;
           }
