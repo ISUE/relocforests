@@ -52,7 +52,7 @@ namespace ISUE {
         
         for (auto p : labeled_data) {
           cv::Point3f val = (p.label_ - mean);
-          sum += powf(val.x, 2) + powf(val.y, 2) + powf(val.x, 2);
+          sum += val.x * val.x  + val.y * val.y + val.z * val.z;
         }
 
         return V * sum;

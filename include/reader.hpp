@@ -55,6 +55,7 @@ namespace ISUE {
 
         if (!associationFile.is_open()) {
           std::cout << "Could not open association file.\n";
+          // todo return error or close app
         }
         else {
           while (!associationFile.eof()) {

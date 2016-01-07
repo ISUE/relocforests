@@ -56,7 +56,16 @@ namespace ISUE {
               float X = (col - settings_.cx) * Z / settings_.fx;
 
               cv::Point3f label(X, Y, Z);
-              // todo: convert to world coordinates
+
+              // convert to world coordinates
+              CameraInfo pose = data_->poses_.at(curr_frame);
+              cv::Mat R = pose.getRotation();
+              cv::Mat T = pose.getTranslation();
+
+              cv::Mat P(label, true);
+              P.convertTo(P, CV_64FC2); // fix exception when doing operations with R, T
+              cv::Mat C = R * P + T;
+              label = cv::Point3f(C);
 
               // store labeled pixel
               LabeledPixel pixel(curr_frame, cv::Point2i(col, row), label);
