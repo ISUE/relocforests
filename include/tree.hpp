@@ -167,6 +167,7 @@ namespace ISUE {
         this->random = random;
         this->settings = settings;
         train_recurse(this->root, labeled_data);
+        // todo: mode fitting
       }
 
     private:

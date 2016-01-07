@@ -89,6 +89,24 @@ namespace ISUE {
         }
       }
 
+      CameraInfo Test(cv::Mat rgb_frame, cv::Mat depth_frame)
+      {
+        std::vector<cv::Point2i> test_pixels;
+        int num_samples = 10; // todo put in settings
+
+        // sample points in test image
+        for (int i = 0; i < num_samples; ++i)  {
+          int col = random_->Next(0, settings_.image_width_);
+          int row = random_->Next(0, settings_.image_height_);
+          test_pixels.push_back(cv::Point2i(col, row));
+        }
+
+        // get modes per pixel index
+        for (auto t : forest_) {
+        }
+
+      }
+
     private:
       Data *data_;
       Settings settings_;
