@@ -8,6 +8,7 @@
 #include <vector>
 #include <random>
 #include <ctime>
+#include <cstdint>
 
 #include "opencv2/opencv.hpp"
 
@@ -83,8 +84,8 @@ namespace ISUE {
           t->Train(data_, labeled_data, random_, &settings_);
 
           duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-          std::cout << "[Tree " << index << "] " << "Train time: " << duration << " Seconds \n";
-          
+          std::cout << "[Tree " << index << "] "
+                    << "Train time: " << duration << " Seconds \n";
           index++;
         }
       }

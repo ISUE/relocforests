@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 
 namespace ISUE {
   namespace RelocForests {
@@ -11,7 +12,7 @@ namespace ISUE {
         depth_factor_(5000)
       {}
 
-      int num_trees_,
+      int32_t num_trees_,
         max_tree_depth_,
         num_frames_per_tree_,
         num_pixels_per_frame_,
@@ -20,7 +21,7 @@ namespace ISUE {
         depth_factor_; // for TUM data sets
 
       // intrinsics
-      int fx, fy, cx, cy;
+      double fx, fy, cx, cy;
 
     };
   }

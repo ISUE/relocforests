@@ -3,8 +3,11 @@
 #include "node.hpp"
 #include "random.hpp"
 #include "settings.hpp"
+#include "data.hpp"
+#include "MeanShift.hpp"
+
 #include <vector>
-#include <data.hpp>
+#include <cstdint>
 
 namespace ISUE {
   namespace RelocForests {
@@ -21,21 +24,23 @@ namespace ISUE {
       };
 
 
+      // learner output
       enum OUT { LEFT, RIGHT, TRASH };
 
-      /*
-        Evaluates weak learner. Decides whether the point should go left or right.
-        Returns OUT enum value.
-       */
+      //  Evaluates weak learner. Decides whether the point should go left or right.
+      //  Returns OUT enum value.
       OUT eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
       {
         auto response = feature->GetResponse(data, pixel);
 
-        if (!response.second) // no depth or out of bounds
+        bool is_valid_point = response.second;
+        if (!is_valid_point) // no depth or out of bounds
           return OUT::TRASH;
+
         return (OUT)(response.first >= feature->GetThreshold());
       }
 
+      // V(S)
       double variance(std::vector<LabeledPixel> labeled_data)
       {
         if (labeled_data.size() == 0)
@@ -47,9 +52,9 @@ namespace ISUE {
         cv::Point3f tmp;
         for (auto p : labeled_data)
           tmp += p.label_;
-        int size = labeled_data.size();
+        uint32_t size = labeled_data.size();
         cv::Point3f mean(tmp.x / size, tmp.y / size, tmp.z / size);
-        
+
         for (auto p : labeled_data) {
           cv::Point3f val = (p.label_ - mean);
           sum += val.x * val.x  + val.y * val.y + val.z * val.z;
@@ -59,6 +64,7 @@ namespace ISUE {
       }
 
 
+      // Q(S_n, \theta)
       double objective_function(std::vector<LabeledPixel> data, std::vector<LabeledPixel> left, std::vector<LabeledPixel> right)
       {
         double var = variance(data);
@@ -78,22 +84,23 @@ namespace ISUE {
       /*
         Returns height from current node to root node.
       */
-      int traverse_to_root(Node *node) {
+      uint32_t traverse_to_root(Node *node) {
         if (node == nullptr)
           return 0;
         return 1 + traverse_to_root(node->parent_);
       }
 
-      Data *data;
-      Random *random;
-      Settings *settings;
 
       void train_recurse(Node *node, std::vector<LabeledPixel> S) 
       {
-        int height = traverse_to_root(node);
+        uint16_t height = traverse_to_root(node);
         if (S.size() == 1 || height >= settings->max_tree_depth_) {
           node->is_leaf_ = true;
           node->distribution_ = S;
+
+          // calc mode for leaf, sub-sample N_SS = 500
+          // gaussian kernel bandwidth k = 0.01m
+
           return;
         }
         else if (S.size() == 0) {
@@ -105,14 +112,15 @@ namespace ISUE {
         node->is_split_ = true;
         node->is_leaf_ = false;
 
-        int num_candidates = 5;
+        uint32_t num_candidates = 5,
+                feature = 0;
+        double minimum_objective = DBL_MAX;
+
         std::vector<DepthAdaptiveRGB*> candidate_params;
         std::vector<LabeledPixel> left_final, right_final;
-        double minimum_objective = DBL_MAX;
-        int feature = 0;
 
 
-        for (int i = 0; i < num_candidates; ++i) {
+        for (uint32_t i = 0; i < num_candidates; ++i) {
 
           // add candidate
           candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random, settings->image_width_, settings->image_height_));
@@ -120,11 +128,11 @@ namespace ISUE {
           // partition data with candidate
           std::vector<LabeledPixel> left_data, right_data;
 
-          for (int j = 0; j < S.size(); ++j) {
+          for (uint32_t j = 0; j < S.size(); ++j) {
             // todo throw away undefined vals
 
             OUT val = eval_learner(data, S.at(j), candidate_params.at(i));
-            
+
             switch (val) {
             case LEFT:
               left_data.push_back(S.at(j));
@@ -167,11 +175,14 @@ namespace ISUE {
         this->random = random;
         this->settings = settings;
         train_recurse(this->root, labeled_data);
-        // todo: mode fitting
       }
+
 
     private:
       Node *root;
+      Data *data;
+      Random *random;
+      Settings *settings;
     };
   }
 }

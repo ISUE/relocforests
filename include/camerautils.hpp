@@ -21,7 +21,7 @@ class CameraInfo
 public:
 	CameraInfo(const cv::Mat &projection = cv::Mat(),int decompositionMethod = 1);
 	CameraInfo(const CameraInfo &info);
-    static CameraInfo CameraInfo::kinectPoseFromEigen(std::pair<Eigen::Matrix3d, Eigen::Vector3d> pos, float fx, float fy, float cx, float cy);
+    static CameraInfo kinectPoseFromEigen(std::pair<Eigen::Matrix3d, Eigen::Vector3d> pos, float fx, float fy, float cx, float cy);
 	~CameraInfo();
 	bool setIntrinsic(const cv::Mat &intrinsic);
 	bool setExtrinsic(const cv::Mat &extrinsic);
