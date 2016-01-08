@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
     cout << "Usage: ./relocforests <path_to_association_file>";
     return 1;
   }
-  
+
   // get path
   string data_path(argv[1]);
 
@@ -25,10 +25,10 @@ int main(int argc, char *argv[]) {
 
   // settings for forest
   Settings *settings = new Settings();
-  settings->fx = 525.0;
-  settings->fy = 525.0;
-  settings->cx = 319.5;
-  settings->cy = 239.5;
+  settings->fx = 525.0f;
+  settings->fy = 525.0f;
+  settings->cx = 319.5f;
+  settings->cy = 239.5f;
 
   // Create forest
   Forest *forest = new Forest(data, *settings);
@@ -36,7 +36,7 @@ int main(int argc, char *argv[]) {
   // train forest
   forest->Train();
 
-  // test forest with random data 
+  // test forest with random data
 
   cout << "Done Training.\n";
 
