@@ -13,12 +13,11 @@ namespace ISUE {
     public:
       Feature(cv::Point2i offset_1, cv::Point2i offset_2)
         : offset_1_(offset_1), offset_2_(offset_2) {};
-      /*
-        Returns a pair:
-          response value - float
-          validity of data point - bool
-       */
-      virtual std::pair<float, bool> GetResponse(Data* data, LabeledPixel pixel) = 0;
+
+        // Returns a pair:
+        //  response value - float
+        //  validity of data point - bool
+        virtual std::pair<float, bool> GetResponse(Data* data, LabeledPixel pixel) = 0;
 
     protected:
       cv::Point2i offset_1_;

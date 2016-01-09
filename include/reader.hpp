@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <iostream>
 #include <fstream>
 #include <sstream>
 
@@ -13,7 +14,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <Eigen/Geometry>
 
-#include <iostream>
 
 namespace ISUE {
   namespace RelocForests {
@@ -33,7 +33,9 @@ namespace ISUE {
         return data;
       }
 
-      void Load(std::string path_to_data)
+      // Loads data from association file
+      // returns true if error
+      bool Load(std::string path_to_data)
       {
         data = new Data();
         data->path_to_assoc_file_ = path_to_data;
@@ -54,7 +56,7 @@ namespace ISUE {
 
         if (!associationFile.is_open()) {
           std::cout << "Could not open association file.\n";
-          // todo return error or close app
+          return true;
         }
         else {
           while (!associationFile.eof()) {
@@ -102,8 +104,8 @@ namespace ISUE {
             if (useColor) result->rgb_names_[i] = prefix + result->rgb_names_[i];
             */
           }
-
         }
+        return false;
       }
     private:
       Data *data;

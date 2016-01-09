@@ -81,9 +81,7 @@ namespace ISUE {
         return var - sum;
       }
 
-      /*
-        Returns height from current node to root node.
-      */
+      // Returns height from current node to root node.
       uint32_t traverse_to_root(Node *node) {
         if (node == nullptr)
           return 0;
@@ -98,8 +96,26 @@ namespace ISUE {
           node->is_leaf_ = true;
           node->distribution_ = S;
 
+          std::vector<std::vector<double>> data;
+
           // calc mode for leaf, sub-sample N_SS = 500
+          for (uint16_t i = 0; i < 500; i++) {
+            auto p = S.at(i);
+            std::vector<double> point;
+            point.push_back(p.label_.x);
+            point.push_back(p.label_.y);
+            point.push_back(p.label_.z);
+            data.push_back(point);
+          }
+          MeanShift *ms = new MeanShift(NULL);
           // gaussian kernel bandwidth k = 0.01m
+          double kernel_bandwidth = 0.01f;
+          std::vector<std::vector<double>> mode = ms->cluster(data, kernel_bandwidth);
+
+          for (auto p : mode) {
+            std::cout << "Point: " << p.at(0) << ", " << p.at(1) << ", " << p.at(2) << "\n";
+          }
+
 
           return;
         }

@@ -21,7 +21,7 @@ void MeanShift::set_kernel( double (*_kernel_func)(double,double) ) {
     if(!_kernel_func){
         kernel_func = gaussian_kernel;
     } else {
-        kernel_func = _kernel_func;    
+        kernel_func = _kernel_func;
     }
 }
 

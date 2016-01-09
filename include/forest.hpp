@@ -34,7 +34,7 @@ namespace ISUE {
 
       void Train()
       {
-        // train each tree individually 
+        // train each tree individually
         int index = 1;
         for (auto t : forest_) {
           std::vector<LabeledPixel> labeled_data;
@@ -45,8 +45,8 @@ namespace ISUE {
             int curr_frame = random_->Next(0, data_->depth_names_.size());
             // randomly sample pixels per frame
             for (int j = 0; j < settings_.num_pixels_per_frame_; ++j) {
-              int row = random_->Next(0, settings_.image_height_); // row
-              int col = random_->Next(0, settings_.image_width_);  // col
+              int row = random_->Next(0, settings_.image_height_);
+              int col = random_->Next(0, settings_.image_width_);
 
               // calc label
               cv::Mat rgb_image = data_->GetRGBImage(curr_frame);
@@ -58,7 +58,7 @@ namespace ISUE {
 
               cv::Point3f label(X, Y, Z);
 
-              // convert to world coordinates
+              // convert label to world coordinates
               CameraInfo pose = data_->poses_.at(curr_frame);
               cv::Mat R = pose.getRotation();
               cv::Mat T = pose.getTranslation();
@@ -93,10 +93,10 @@ namespace ISUE {
       CameraInfo Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
         std::vector<cv::Point2i> test_pixels;
-        int num_samples = 10; // todo put in settings
+        int batch_size = 500; // todo put in settings
 
         // sample points in test image
-        for (int i = 0; i < num_samples; ++i)  {
+        for (int i = 0; i < batch_size; ++i)  {
           int col = random_->Next(0, settings_.image_width_);
           int row = random_->Next(0, settings_.image_height_);
           test_pixels.push_back(cv::Point2i(col, row));

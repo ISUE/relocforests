@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "reader.hpp"
-#include "data.hpp"
 #include "settings.hpp"
 #include "forest.hpp"
 
@@ -18,7 +17,10 @@ int main(int argc, char *argv[]) {
   string data_path(argv[1]);
 
   Reader *reader = new Reader();
-  reader->Load(data_path);
+  bool err = reader->Load(data_path);
+  if (err) {
+    return 1;
+  }
 
   // Get data from reader
   Data *data = reader->GetData();
