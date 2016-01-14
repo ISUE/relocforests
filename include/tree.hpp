@@ -9,6 +9,8 @@
 #include <vector>
 #include <cstdint>
 
+#include <unordered_map>
+
 namespace ISUE {
   namespace RelocForests {
     class Tree {
@@ -99,7 +101,8 @@ namespace ISUE {
           std::vector<std::vector<double>> data;
 
           // calc mode for leaf, sub-sample N_SS = 500
-          for (uint16_t i = 0; i < 500; i++) {
+
+          for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
             auto p = S.at(i);
             std::vector<double> point;
             point.push_back(p.label_.x);
@@ -107,14 +110,35 @@ namespace ISUE {
             point.push_back(p.label_.z);
             data.push_back(point);
           }
-          MeanShift *ms = new MeanShift(NULL);
-          // gaussian kernel bandwidth k = 0.01m
-          double kernel_bandwidth = 0.01f;
-          std::vector<std::vector<double>> mode = ms->cluster(data, kernel_bandwidth);
+          MeanShift *ms = new MeanShift(nullptr);
+          double kernel_bandwidth = 0.01f; // gaussian
+          std::vector<std::vector<double>> clustered = ms->cluster(data, kernel_bandwidth);
 
-          for (auto p : mode) {
-            std::cout << "Point: " << p.at(0) << ", " << p.at(1) << ", " << p.at(2) << "\n";
+          std::vector<cv::Point3d> c_t;
+          for (auto c : clustered) {
+            c_t.push_back(cv::Point3d(c[0], c[1], c[2]));
           }
+
+          std::sort(c_t.begin(), c_t.end(),
+            [](const cv::Point3d &a, const cv::Point3d &b){
+            return a.x < b.x;
+            });
+          ;
+
+          /*
+          std::unordered_map<std::vector<double>, uint32_t> mode;
+
+          for (auto p : cluster) {
+            if (mode.at(p)) {
+              auto m = mode.find(p);
+              if (m != mode.end())
+                m->second++;
+            }
+            else {
+              mode.insert(std::pair<std::vector<double>, uint32_t>(p, 1));
+            }
+          }
+          */
 
 
           return;

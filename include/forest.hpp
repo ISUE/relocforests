@@ -16,10 +16,10 @@ namespace ISUE {
   namespace RelocForests {
     class Forest {
     public:
-      Forest(Data *data, Settings settings) 
+      Forest(Data *data, Settings *settings) 
         : data_(data), settings_(settings)
       {
-        for (int i = 0; i < settings.num_trees_; ++i)
+        for (int i = 0; i < settings->num_trees_; ++i)
           forest_.push_back(new Tree());
         random_ = new Random();
       };
@@ -41,20 +41,20 @@ namespace ISUE {
           std::cout << "[Tree " << index << "] " << "Generating Training Data.\n";
 
           // randomly choose frames
-          for (int i = 0; i < settings_.num_frames_per_tree_; ++i) {
+          for (int i = 0; i < settings_->num_frames_per_tree_; ++i) {
             int curr_frame = random_->Next(0, data_->depth_names_.size());
             // randomly sample pixels per frame
-            for (int j = 0; j < settings_.num_pixels_per_frame_; ++j) {
-              int row = random_->Next(0, settings_.image_height_);
-              int col = random_->Next(0, settings_.image_width_);
+            for (int j = 0; j < settings_->num_pixels_per_frame_; ++j) {
+              int row = random_->Next(0, settings_->image_height_);
+              int col = random_->Next(0, settings_->image_width_);
 
               // calc label
               cv::Mat rgb_image = data_->GetRGBImage(curr_frame);
               cv::Mat depth_image = data_->GetDepthImage(curr_frame);
 
-              float Z = (float)depth_image.at<ushort>(row, col) / (float)settings_.depth_factor_;
-              float Y = (row - settings_.cy) * Z / settings_.fy;
-              float X = (col - settings_.cx) * Z / settings_.fx;
+              float Z = (float)depth_image.at<ushort>(row, col) / (float)settings_->depth_factor_;
+              float Y = (row - settings_->cy) * Z / settings_->fy;
+              float X = (col - settings_->cx) * Z / settings_->fx;
 
               cv::Point3f label(X, Y, Z);
 
@@ -81,7 +81,7 @@ namespace ISUE {
           double duration;
           start = std::clock();
 
-          t->Train(data_, labeled_data, random_, &settings_);
+          t->Train(data_, labeled_data, random_, settings_);
 
           duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
           std::cout << "[Tree " << index << "] "
@@ -97,8 +97,8 @@ namespace ISUE {
 
         // sample points in test image
         for (int i = 0; i < batch_size; ++i)  {
-          int col = random_->Next(0, settings_.image_width_);
-          int row = random_->Next(0, settings_.image_height_);
+          int col = random_->Next(0, settings_->image_width_);
+          int row = random_->Next(0, settings_->image_height_);
           test_pixels.push_back(cv::Point2i(col, row));
         }
 
@@ -110,7 +110,7 @@ namespace ISUE {
 
     private:
       Data *data_;
-      Settings settings_;
+      Settings *settings_;
       std::vector<Tree*> forest_;
       Random *random_;
     };

@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
   settings->cy = 239.5f;
 
   // Create forest
-  Forest *forest = new Forest(data, *settings);
+  Forest *forest = new Forest(data, settings);
 
   // train forest
   forest->Train();

@@ -18,11 +18,11 @@ double gaussian_kernel(double distance, double kernel_bandwidth){
 }
 
 void MeanShift::set_kernel( double (*_kernel_func)(double,double) ) {
-    if(!_kernel_func){
+//    if(!_kernel_func){
         kernel_func = gaussian_kernel;
-    } else {
-        kernel_func = _kernel_func;
-    }
+ //   } else {
+ //       kernel_func = _kernel_func;
+ //   }
 }
 
 vector<double> MeanShift::shift_point(const vector<double> &point, const vector<vector<double> > &points, double kernel_bandwidth) {
@@ -48,7 +48,7 @@ vector<double> MeanShift::shift_point(const vector<double> &point, const vector<
 }
 
 vector<vector<double> > MeanShift::cluster(vector<vector<double> > points, double kernel_bandwidth){
-    vector<bool> stop_moving;
+    vector<bool> stop_moving(points.size(), false);
     stop_moving.reserve(points.size());
     vector<vector<double> > shifted_points = points;
     double max_shift_distance;
@@ -67,7 +67,7 @@ vector<vector<double> > MeanShift::cluster(vector<vector<double> > points, doubl
                 shifted_points[i] = point_new;
             }
         }
-        printf("max_shift_distance: %f\n", max_shift_distance);
+        //printf("max_shift_distance: %f\n", max_shift_distance);
     } while (max_shift_distance > EPSILON);
     return shifted_points;
 }
