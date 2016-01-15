@@ -150,7 +150,7 @@ namespace ISUE {
               mode = h;
 
           node->is_leaf_ = true;
-          node->mode_ = mode.first;
+          node->mode_ = cv::Point3d(mode.first.x, mode.first.y, mode.first.z);
 
           return;
         }
