@@ -140,17 +140,23 @@ namespace ISUE {
             clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
 
           Point3DMap cluster_map;
-          std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
 
           for (auto p : clustered_points)
             cluster_map[p]++;
 
+          std::vector<cv::Point3d> modes;
+          for (auto p : cluster_map)
+            modes.push_back(cv::Point3d(p.first.x, p.first.y, p.first.z));
+
+          /*
           for (auto h : cluster_map)
             if (h.second > mode.second)
               mode = h;
 
-          node->is_leaf_ = true;
           node->mode_ = cv::Point3d(mode.first.x, mode.first.y, mode.first.z);
+          */
+          node->is_leaf_ = true;
+          node->modes_ = modes;
 
           return;
         }

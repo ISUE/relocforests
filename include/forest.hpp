@@ -92,19 +92,47 @@ namespace ISUE {
 
       CameraInfo Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
-        std::vector<cv::Point2i> test_pixels;
-        int batch_size = 500; // todo put in settings
+        int K_init = 1024;
+        int K = K_init;
 
-        // sample points in test image
-        for (int i = 0; i < batch_size; ++i)  {
-          int col = random_->Next(0, settings_->image_width_);
-          int row = random_->Next(0, settings_->image_height_);
-          test_pixels.push_back(cv::Point2i(col, row));
+        std::vector<CameraInfo> hypotheses;
+
+        // sample initial hypotheses
+        for (uint16_t i = 0; i < K_init; ++i) {
+
         }
 
-        // get modes per pixel index
-        for (auto t : forest_) {
+        // init energies
+        std::vector<uint32_t> energies (K, 0);
+
+        while (K > 1) {
+          // sample set of B test pixels
+          std::vector<cv::Point2i> test_pixels;
+          int batch_size = 500; // todo put in settings
+          // sample points in test image
+          for (int i = 0; i < batch_size; ++i)  {
+            int col = random_->Next(0, settings_->image_width_);
+            int row = random_->Next(0, settings_->image_height_);
+            test_pixels.push_back(cv::Point2i(col, row));
+          }
+
+          for (auto p : test_pixels) {
+            // evaluate forest to get modes (union)
+            for (int i = 0; i < K; ++i) {
+              // update energy
+              // E_k <- E_k + e_i(H_K)
+            }
+          }
+
+          // sort hypotheses 
+
+          K = K / 2;
+
+          // refine hypotheses 
+
         }
+
+        // return best pose and energy        
 
       }
 
