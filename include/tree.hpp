@@ -13,6 +13,30 @@
 
 namespace ISUE {
   namespace RelocForests {
+    class Point3D {
+    public:
+      Point3D(double x, double y, double z) : x(x), y(y), z(z) {};
+      double x, y, z;
+    };
+
+    struct hashFunc{
+      size_t operator()(const Point3D &k) const {
+        size_t h1 = std::hash<double>()(k.x);
+        size_t h2 = std::hash<double>()(k.y);
+        size_t h3 = std::hash<double>()(k.z);
+        return (h1 ^ (h2 << 1)) ^ h3;
+      }
+    };
+
+    struct equalsFunc {
+      bool operator()(const Point3D &l, const Point3D &r) const{
+        return (l.x == r.x) && (l.y == r.y) && (l.z == r.z);
+      }
+    };
+
+    typedef std::unordered_map<Point3D, uint32_t, hashFunc, equalsFunc> Point3DMap;
+
+
     class Tree {
     public:
       Tree()
@@ -95,51 +119,38 @@ namespace ISUE {
       {
         uint16_t height = traverse_to_root(node);
         if (S.size() == 1 || height >= settings->max_tree_depth_) {
-          node->is_leaf_ = true;
-          node->distribution_ = S;
 
           std::vector<std::vector<double>> data;
 
           // calc mode for leaf, sub-sample N_SS = 500
-
           for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
             auto p = S.at(i);
-            std::vector<double> point;
-            point.push_back(p.label_.x);
-            point.push_back(p.label_.y);
-            point.push_back(p.label_.z);
+            std::vector<double> point { p.label_.x, p.label_.y, p.label_.z };
             data.push_back(point);
           }
+
+          // cluster
           MeanShift *ms = new MeanShift(nullptr);
           double kernel_bandwidth = 0.01f; // gaussian
-          std::vector<std::vector<double>> clustered = ms->cluster(data, kernel_bandwidth);
+          std::vector<std::vector<double>> cluster = ms->cluster(data, kernel_bandwidth);
 
-          std::vector<cv::Point3d> c_t;
-          for (auto c : clustered) {
-            c_t.push_back(cv::Point3d(c[0], c[1], c[2]));
-          }
+          // find mode
+          std::vector<Point3D> clustered_points;
+          for (auto c : cluster)
+            clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
 
-          std::sort(c_t.begin(), c_t.end(),
-            [](const cv::Point3d &a, const cv::Point3d &b){
-            return a.x < b.x;
-            });
-          ;
+          Point3DMap cluster_map;
+          std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
 
-          /*
-          std::unordered_map<std::vector<double>, uint32_t> mode;
+          for (auto p : clustered_points)
+            cluster_map[p]++;
 
-          for (auto p : cluster) {
-            if (mode.at(p)) {
-              auto m = mode.find(p);
-              if (m != mode.end())
-                m->second++;
-            }
-            else {
-              mode.insert(std::pair<std::vector<double>, uint32_t>(p, 1));
-            }
-          }
-          */
+          for (auto h : cluster_map)
+            if (h.second > mode.second)
+              mode = h;
 
+          node->is_leaf_ = true;
+          node->mode_ = mode.first;
 
           return;
         }

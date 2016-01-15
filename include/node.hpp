@@ -28,6 +28,7 @@ namespace ISUE {
       Node *right_;
       DepthAdaptiveRGB *feature_;
       std::vector<LabeledPixel> distribution_;
+      Point3D mode_;
     };
   }
 }
