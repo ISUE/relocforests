@@ -58,6 +58,7 @@ namespace ISUE {
       OUT eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
       {
         auto response = feature->GetResponse(data, pixel);
+        //auto response1 = feature->GetResponse(data->GetDepthImage(pixel.frame_), data->GetDepthImage(pixel.frame_), pixel);
 
         bool is_valid_point = response.second;
         if (!is_valid_point) // no depth or out of bounds
@@ -148,13 +149,6 @@ namespace ISUE {
           for (auto p : cluster_map)
             modes.push_back(cv::Point3d(p.first.x, p.first.y, p.first.z));
 
-          /*
-          for (auto h : cluster_map)
-            if (h.second > mode.second)
-              mode = h;
-
-          node->mode_ = cv::Point3d(mode.first.x, mode.first.y, mode.first.z);
-          */
           node->is_leaf_ = true;
           node->modes_ = modes;
 
@@ -232,6 +226,36 @@ namespace ISUE {
         this->random = random;
         this->settings = settings;
         train_recurse(this->root, labeled_data);
+      }
+
+      std::vector<cv::Point3d> eval_recursive(Node *node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      {
+
+        if (node->is_leaf_) {
+          return node->modes_;
+        }
+
+        auto pair = node->feature_->GetResponse(depth_image, rgb_image, cv::Point2i(col, row));
+
+        OUT val = (OUT)(pair.first >= node->feature_->GetThreshold());
+
+        switch (val) {
+        case LEFT:
+          eval_recursive(node->left_, row, col, rgb_image, depth_image);
+          break;
+        case RIGHT:
+          eval_recursive(node->right_, row, col, rgb_image, depth_image);
+          break;
+        case TRASH:
+          // do nothing
+          break;
+        }
+      }
+
+      // Evaluate tree at a pixel
+      std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      {
+        eval_recursive(root, row, col, rgb_image, depth_image);
       }
 
 

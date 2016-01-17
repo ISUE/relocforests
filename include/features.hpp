@@ -18,6 +18,7 @@ namespace ISUE {
         //  response value - float
         //  validity of data point - bool
         virtual std::pair<float, bool> GetResponse(Data* data, LabeledPixel pixel) = 0;
+        virtual std::pair<float, bool> GetResponse(cv::Mat depth_img, cv::Mat rgb_image, cv::Point2i pos) = 0;
 
     protected:
       cv::Point2i offset_1_;
@@ -89,6 +90,44 @@ namespace ISUE {
 
         cv::Point2i pos1 = pixel.pos_ + depth_inv_1;
         cv::Point2i pos2 = pixel.pos_ + depth_inv_2;
+
+        // check bounds
+        if (pos1.x >= 640.0 || pos1.y >= 480.0 ||
+            pos1.x < 0.0    || pos1.y < 0.0 ) {
+          return std::pair<float, bool>(0.0f, false);
+        }
+        if (pos2.x >= 640.0 || pos2.y >= 480.0 ||
+            pos2.x < 0.0    || pos2.y < 0.0) {
+          return std::pair<float, bool>(0.0f, false);
+        }
+
+        float I_1 = rgb_img.at<cv::Vec3b>(pos1)[this->color_channel_1_];
+        float I_2 = rgb_img.at<cv::Vec3b>(pos2)[this->color_channel_2_];
+
+        return std::pair<float, bool>(I_1 - I_2, true);
+      }
+
+      virtual std::pair<float, bool> GetResponse(cv::Mat depth_img, cv::Mat rgb_img, cv::Point2i pos) override
+      {
+        //cv::Mat depth_img = data->GetDepthImage(pixel.frame_);
+        //cv::Mat rgb_img = data->GetRGBImage(pixel.frame_);
+
+        ushort depth_at_pos = depth_img.at<ushort>(pos);
+        float depth = (float)depth_at_pos;
+
+        if (depth <= 0) {
+          return std::pair<float, bool>(0.0f, false);
+        }
+        else {
+          depth /= 5000.0; // scale value
+        }
+
+        // depth invariance
+        cv::Point2i depth_inv_1(offset_1_.x / depth, offset_2_.y / depth);
+        cv::Point2i depth_inv_2(offset_2_.x / depth, offset_2_.y / depth);
+
+        cv::Point2i pos1 = pos + depth_inv_1;
+        cv::Point2i pos2 = pos + depth_inv_2;
 
         // check bounds
         if (pos1.x >= 640.0 || pos1.y >= 480.0 ||

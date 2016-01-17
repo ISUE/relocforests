@@ -90,6 +90,20 @@ namespace ISUE {
         }
       }
 
+      std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      {
+        std::vector<cv::Point3d> modes;
+
+        for (auto t : forest_) {
+          auto m = t->Eval(row, col, rgb_image, depth_image);
+          modes.insert(modes.end(), m.begin(), m.end());
+        }
+
+        return modes;
+      }
+
+
+
       CameraInfo Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
         int K_init = 1024;
@@ -99,7 +113,15 @@ namespace ISUE {
 
         // sample initial hypotheses
         for (uint16_t i = 0; i < K_init; ++i) {
-
+          // 3 points
+          std::vector<cv::Point3d> points;
+          for (uint16_t j = 0; j < 3; ++j) {
+            int col = random_->Next(0, settings_->image_width_);
+            int row = random_->Next(0, settings_->image_height_);
+            auto modes = Eval(row, col, rgb_frame, depth_frame);
+            points.push_back(modes.at(random_->Next(0, modes.size() - 1)));
+          }
+          // kabsch
         }
 
         // init energies
@@ -109,6 +131,7 @@ namespace ISUE {
           // sample set of B test pixels
           std::vector<cv::Point2i> test_pixels;
           int batch_size = 500; // todo put in settings
+
           // sample points in test image
           for (int i = 0; i < batch_size; ++i)  {
             int col = random_->Next(0, settings_->image_width_);
@@ -118,6 +141,7 @@ namespace ISUE {
 
           for (auto p : test_pixels) {
             // evaluate forest to get modes (union)
+            auto modes = Eval(p.y, p.x, rgb_frame, depth_frame);
             for (int i = 0; i < K; ++i) {
               // update energy
               // E_k <- E_k + e_i(H_K)
