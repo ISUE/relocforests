@@ -4,11 +4,14 @@
 #include "settings.hpp"
 #include "tree.hpp"
 #include "random.hpp"
+#include "Kabsch.hpp"
 
 #include <vector>
 #include <random>
 #include <ctime>
 #include <cstdint>
+
+#include <Eigen/Geometry>
 
 #include "opencv2/opencv.hpp"
 
@@ -104,24 +107,33 @@ namespace ISUE {
 
 
 
+
       CameraInfo Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
         int K_init = 1024;
         int K = K_init;
 
-        std::vector<CameraInfo> hypotheses;
+        std::vector<Eigen::Affine3d> hypotheses;
 
         // sample initial hypotheses
         for (uint16_t i = 0; i < K_init; ++i) {
           // 3 points
-          std::vector<cv::Point3d> points;
+          Eigen::Matrix3Xd input;
+          Eigen::Matrix3Xd output;
+
           for (uint16_t j = 0; j < 3; ++j) {
             int col = random_->Next(0, settings_->image_width_);
             int row = random_->Next(0, settings_->image_height_);
+            // todo: get camera space points?
+            // add to input
+
             auto modes = Eval(row, col, rgb_frame, depth_frame);
-            points.push_back(modes.at(random_->Next(0, modes.size() - 1)));
+            auto point = modes.at(random_->Next(0, modes.size() - 1));
+            // add point to output
           }
-          // kabsch
+          // kabsch algorithm
+          Eigen::Affine3d transform = Find3DAffineTransform(input, output);
+          hypotheses.push_back(transform);
         }
 
         // init energies
@@ -142,6 +154,7 @@ namespace ISUE {
           for (auto p : test_pixels) {
             // evaluate forest to get modes (union)
             auto modes = Eval(p.y, p.x, rgb_frame, depth_frame);
+
             for (int i = 0; i < K; ++i) {
               // update energy
               // E_k <- E_k + e_i(H_K)
