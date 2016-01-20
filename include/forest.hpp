@@ -10,6 +10,9 @@
 #include <random>
 #include <ctime>
 #include <cstdint>
+#include <iostream>
+#include <istream>
+#include <fstream>
 
 #include <Eigen/Geometry>
 
@@ -33,6 +36,30 @@ namespace ISUE {
         for (auto t : forest_)
           delete t;
         forest_.clear();
+      }
+
+      void Serialize(const std::string& path)
+      {
+        std::ofstream o(path, std::ios_base::binary);
+        Serialize(o);
+      }
+
+      void Serialize(std::ostream& stream)
+      {
+        const int majorVersion = 0, minorVersion = 0;
+
+        stream.write(binaryFileHeader_, strlen(binaryFileHeader_));
+        stream.write((const char*)(&majorVersion), sizeof(majorVersion));
+        stream.write((const char*)(&minorVersion), sizeof(minorVersion));
+
+        int treeCount = settings_->num_trees_;
+        stream.write((const char*)(&treeCount), sizeof(treeCount));
+
+        for (auto tree : forest_)
+          tree->Serialize(stream);
+        
+        if (stream.bad())
+          throw std::runtime_error("Forest serialization failed");
       }
 
       void Train()
@@ -106,17 +133,39 @@ namespace ISUE {
       }
 
 
+      uint8_t tophat_error(double val)
+      {
+        if (val > 0 && val < 0.1)
+          return 1;
+        else
+          return 0;
+      }
 
+      class Hypothesis {
+      public:
+        Eigen::Affine3d pose;
+        Eigen::Vector3d camera_space_point;
+        uint32_t energy;
 
-      CameraInfo Test(cv::Mat rgb_frame, cv::Mat depth_frame)
+        bool operator < (const Hypothesis& h) const
+        {
+          return (energy < h.energy);
+        }
+      };
+
+      // Get pose hypothesis from depth and rgb frame
+      Eigen::Affine3d Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
         int K_init = 1024;
         int K = K_init;
 
-        std::vector<Eigen::Affine3d> hypotheses;
+        std::vector<Hypothesis> hypotheses;
+        //std::vector<Eigen::Affine3d> hypotheses;
+        //std::vector<Eigen::Vector3d> x_values;
 
         // sample initial hypotheses
         for (uint16_t i = 0; i < K_init; ++i) {
+          Hypothesis h;
           // 3 points
           Eigen::Matrix3Xd input(3, 3);
           Eigen::Matrix3Xd output(3, 3);
@@ -128,7 +177,9 @@ namespace ISUE {
             double Z = (float)depth_frame.at<ushort>(row, col) / (float)settings_->depth_factor_;
             double Y = (row - settings_->cy) * Z / settings_->fy;
             double X = (col - settings_->cx) * Z / settings_->fx;
+
             Eigen::Vector3d tmp_in(X, Y, Z);
+            h.camera_space_point = tmp_in;
             // add to input
             input << tmp_in;
 
@@ -141,11 +192,13 @@ namespace ISUE {
           }
           // kabsch algorithm
           Eigen::Affine3d transform = Find3DAffineTransform(input, output);
-          hypotheses.push_back(transform);
+          h.pose = transform;
+          //hypotheses.push_back(transform);
+          h.energy = 0;
         }
 
         // init energies
-        std::vector<uint32_t> energies (K, 0);
+        //std::vector<uint32_t> energies (K, 0);
 
         while (K > 1) {
           // sample set of B test pixels
@@ -164,21 +217,36 @@ namespace ISUE {
             auto modes = Eval(p.y, p.x, rgb_frame, depth_frame);
 
             for (int i = 0; i < K; ++i) {
+              double e_min = DBL_MAX;
+
+              for (auto m : modes) {
+                Eigen::Vector3d mode(m.x, m.y, m.z);
+                Eigen::Vector3d e = mode - (hypotheses.at(i).pose * hypotheses.at(i).camera_space_point);
+                double e_norm = e.norm();
+
+                if (e_norm < e_min) {
+                  e_min = e_norm;
+                }
+              }
               // update energy
-              // E_k <- E_k + e_i(H_K)
+              hypotheses.at(i).energy += tophat_error(e_min); // todo make sure this is right
+              if (tophat_error(e_min) == 0) { // inlier
+              }
             }
           }
 
           // sort hypotheses 
+          std::sort(hypotheses.begin(), hypotheses.end());
 
-          K = K / 2;
+          K = K / 2; // discard half
 
-          // refine hypotheses 
+          // refine hypotheses (kabsch)
+
 
         }
 
         // return best pose and energy        
-
+        return hypotheses.front().pose;
       }
 
     private:
@@ -186,6 +254,7 @@ namespace ISUE {
       Settings *settings_;
       std::vector<Tree*> forest_;
       Random *random_;
+      const char* binaryFileHeader_ = "ISUE.RelocForests.Forest";
     };
   }
 

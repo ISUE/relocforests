@@ -37,6 +37,7 @@ int main(int argc, char *argv[]) {
 
   // train forest
   forest->Train();
+  forest->Serialize("forest.rf");
 
   // test forest with random data
 

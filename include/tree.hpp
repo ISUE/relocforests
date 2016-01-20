@@ -8,6 +8,7 @@
 
 #include <vector>
 #include <cstdint>
+#include <ctime>
 
 #include <unordered_map>
 
@@ -48,6 +49,19 @@ namespace ISUE {
       {
         delete root;
       };
+
+      void Serialize(std::ostream& stream) const
+      {
+        const int majorVersion = 0, minorVersion = 0;
+        
+        stream.write(binaryFileHeader_, strlen(binaryFileHeader_));
+        stream.write((const char*)(&majorVersion), sizeof(majorVersion));
+        stream.write((const char*)(&minorVersion), sizeof(minorVersion));
+
+        stream.write((const char*)(&settings->max_tree_depth_), sizeof(settings->max_tree_depth_));
+
+        stream.write((const char*)(this), sizeof(this));
+      }
 
 
       // learner output
@@ -121,19 +135,19 @@ namespace ISUE {
         uint16_t height = traverse_to_root(node);
         if (S.size() == 1 || height >= settings->max_tree_depth_) {
 
-          std::vector<std::vector<double>> data;
+          std::vector<Eigen::Vector3d> data;
 
           // calc mode for leaf, sub-sample N_SS = 500
           for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
             auto p = S.at(i);
-            std::vector<double> point { p.label_.x, p.label_.y, p.label_.z };
+            Eigen::Vector3d point { p.label_.x, p.label_.y, p.label_.z };
             data.push_back(point);
           }
 
           // cluster
           MeanShift *ms = new MeanShift(nullptr);
           double kernel_bandwidth = 0.01f; // gaussian
-          std::vector<std::vector<double>> cluster = ms->cluster(data, kernel_bandwidth);
+          std::vector<Eigen::Vector3d> cluster = ms->cluster(data, kernel_bandwidth);
 
           // find mode
           std::vector<Point3D> clustered_points;
@@ -149,9 +163,8 @@ namespace ISUE {
           for (auto p : cluster_map)
             modes.push_back(cv::Point3d(p.first.x, p.first.y, p.first.z));
 
-          node->is_leaf_ = true;
           node->modes_ = modes;
-
+          node->is_leaf_ = true;
           return;
         }
         else if (S.size() == 0) {
@@ -264,6 +277,7 @@ namespace ISUE {
       Data *data;
       Random *random;
       Settings *settings;
+      const char* binaryFileHeader_ = "ISUE.RelocForests.Tree";
     };
   }
 }
