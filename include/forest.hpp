@@ -118,18 +118,26 @@ namespace ISUE {
         // sample initial hypotheses
         for (uint16_t i = 0; i < K_init; ++i) {
           // 3 points
-          Eigen::Matrix3Xd input;
-          Eigen::Matrix3Xd output;
+          Eigen::Matrix3Xd input(3, 3);
+          Eigen::Matrix3Xd output(3, 3);
 
           for (uint16_t j = 0; j < 3; ++j) {
             int col = random_->Next(0, settings_->image_width_);
             int row = random_->Next(0, settings_->image_height_);
             // todo: get camera space points?
+            double Z = (float)depth_frame.at<ushort>(row, col) / (float)settings_->depth_factor_;
+            double Y = (row - settings_->cy) * Z / settings_->fy;
+            double X = (col - settings_->cx) * Z / settings_->fx;
+            Eigen::Vector3d tmp_in(X, Y, Z);
             // add to input
+            input << tmp_in;
 
             auto modes = Eval(row, col, rgb_frame, depth_frame);
             auto point = modes.at(random_->Next(0, modes.size() - 1));
             // add point to output
+            Eigen::Vector3d tmp_out(point.x, point.y, point.z);
+            output << tmp_out;
+
           }
           // kabsch algorithm
           Eigen::Affine3d transform = Find3DAffineTransform(input, output);
