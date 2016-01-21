@@ -195,6 +195,7 @@ namespace ISUE {
           h.pose = transform;
           //hypotheses.push_back(transform);
           h.energy = 0;
+          hypotheses.push_back(h);
         }
 
         // init energies

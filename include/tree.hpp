@@ -268,7 +268,7 @@ namespace ISUE {
       // Evaluate tree at a pixel
       std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
-        eval_recursive(root, row, col, rgb_image, depth_image);
+        return eval_recursive(root, row, col, rgb_image, depth_image);
       }
 
 
