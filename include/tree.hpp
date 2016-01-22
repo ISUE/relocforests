@@ -50,6 +50,15 @@ namespace ISUE {
         delete root_;
       };
 
+      void WriteTree(std::ostream& o, Node *node) const
+      {
+        if (node == nullptr)
+          o.write((const char*)"null", sizeof("null"));
+        node->Serialize(o);
+        WriteTree(o, node->left_);
+        WriteTree(o, node->right_);
+      }
+
       void Serialize(std::ostream& stream) const
       {
         const int majorVersion = 0, minorVersion = 0;
@@ -60,7 +69,7 @@ namespace ISUE {
 
         stream.write((const char*)(&settings_->max_tree_depth_), sizeof(settings_->max_tree_depth_));
 
-        stream.write((const char*)(this), sizeof(this));
+        WriteTree(stream, root_);
       }
 
 
@@ -187,7 +196,6 @@ namespace ISUE {
 
           for (uint32_t j = 0; j < S.size(); ++j) {
 
-            //DECISION val = eval_learner(data_, S.at(j), candidate_params.at(i));
             LabeledPixel p = S.at(j);
             DECISION val = eval_learner(candidate_params.at(i), data_->GetDepthImage(p.frame_), data_->GetRGBImage(p.frame_), p.pos_);
 

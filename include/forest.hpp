@@ -123,6 +123,11 @@ namespace ISUE {
           start = std::clock();
 
           t->Train(data_, labeled_data, random_, settings_);
+          
+          std::ofstream o("swag.tree", std::ios_base::binary);
+          t->Serialize(o);
+
+          std::cout << "Wrote tree\n";
 
           duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
           std::cout << "[Tree " << index << "] "
