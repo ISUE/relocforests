@@ -69,10 +69,11 @@ namespace ISUE {
 
       //  Evaluates weak learner. Decides whether the point should go left or right.
       //  Returns DECISION enum value.
-      DECISION eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
+      //DECISION eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
+      DECISION eval_learner(DepthAdaptiveRGB *feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
       {
         bool valid = true;
-        float response = feature->GetResponse(data->GetDepthImage(pixel.frame_), data->GetRGBImage(pixel.frame_), pixel.pos_, valid);
+        float response = feature->GetResponse(depth_image, rgb_image, pos, valid);
 
         if (!valid) // no depth or out of bounds
           return DECISION::TRASH;
@@ -185,9 +186,10 @@ namespace ISUE {
           std::vector<LabeledPixel> left_data, right_data;
 
           for (uint32_t j = 0; j < S.size(); ++j) {
-            // todo throw away undefined vals
 
-            DECISION val = eval_learner(data_, S.at(j), candidate_params.at(i));
+            //DECISION val = eval_learner(data_, S.at(j), candidate_params.at(i));
+            LabeledPixel p = S.at(j);
+            DECISION val = eval_learner(candidate_params.at(i), data_->GetDepthImage(p.frame_), data_->GetRGBImage(p.frame_), p.pos_);
 
             switch (val) {
             case LEFT:
@@ -240,11 +242,7 @@ namespace ISUE {
           return node->modes_;
         }
 
-        bool valid = true;
-
-        float response = node->feature_->GetResponse(depth_image, rgb_image, cv::Point2i(col, row), valid);
-
-        DECISION val = (DECISION)(response >= node->feature_->GetThreshold());
+        DECISION val = eval_learner(node->feature_, depth_image, rgb_image, cv::Point2i(col, row));
 
         switch (val) {
         case LEFT:
@@ -254,7 +252,6 @@ namespace ISUE {
           eval_recursive(node->right_, row, col, rgb_image, depth_image);
           break;
         case TRASH:
-          // do nothing
           break;
         }
       }
