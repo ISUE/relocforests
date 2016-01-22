@@ -10,6 +10,12 @@ namespace ISUE {
 
     class Feature {
     public:
+      Feature()
+      {
+        offset_1_ = cv::Point2i(0,0);
+        offset_2_ = cv::Point2i(0, 0);
+      }
+
       Feature(cv::Point2i offset_1, cv::Point2i offset_2)
         : offset_1_(offset_1), offset_2_(offset_2) {};
 
@@ -52,18 +58,25 @@ namespace ISUE {
      */
     class DepthAdaptiveRGB : public Feature {
     public:
+      DepthAdaptiveRGB()
+      {
+        color_channel_1_ = 0;
+        color_channel_2_ = 0;
+        tau_ = 0;
+      }
+
       DepthAdaptiveRGB(cv::Point2i offset_1, cv::Point2i offset_2, int color_channel_1, int color_channel_2, float tau)
         : Feature(offset_1, offset_2), color_channel_1_(color_channel_1), color_channel_2_(color_channel_2), tau_(tau)
       {};
 
-      static DepthAdaptiveRGB* CreateRandom(Random *random)
+      static DepthAdaptiveRGB CreateRandom(Random *random)
       {
         cv::Point2i offset_1(random->Next(-130, 130), random->Next(-130, 130)); // Value from the paper -- +/- 130 pixel meters
         cv::Point2i offset_2(random->Next(-130, 130), random->Next(-130, 130));
         int color_channel_1 = random->Next(0, 2);
         int color_channel_2 = random->Next(0, 2);
         int tau_ = random->Next(0, 12); // todo figure out a good value, emperical
-        return new DepthAdaptiveRGB(offset_1, offset_2, color_channel_1, color_channel_2, tau_);
+        return DepthAdaptiveRGB(offset_1, offset_2, color_channel_1, color_channel_2, tau_);
       }
 
       virtual float GetResponse(cv::Mat depth_img, cv::Mat rgb_img, cv::Point2i pos, bool &valid) override

@@ -23,30 +23,28 @@ namespace ISUE {
         parent_ = nullptr;
         left_ = nullptr;
         right_ = nullptr;
-        feature_ = nullptr;
       };
 
       ~Node()
       {
         delete left_;
         delete right_;
-        delete feature_;
       }
 
       void Serialize(std::ostream& o) const
       {
         Serialize_(o, is_leaf_);
         Serialize_(o, is_split_);
-        Serialize_(o, *feature_);
-        Serialize_(o, modes_);
+        Serialize_(o, feature_);
+        Serialize_(o, mode_);
       }
 
       void Deserialize(std::istream& i)
       {
         Deserialize_(i, is_leaf_);
         Deserialize_(i, is_split_);
-        Deserialize_(i, *feature_);
-        Deserialize_(i, modes_);
+        Deserialize_(i, feature_);
+        Deserialize_(i, mode_);
       }
 
       bool is_leaf_ = false;
@@ -54,9 +52,11 @@ namespace ISUE {
       Node *parent_;
       Node *left_;
       Node *right_;
-      DepthAdaptiveRGB *feature_;
-      std::vector<LabeledPixel> distribution_;
-      std::vector<cv::Point3d> modes_;
+      //DepthAdaptiveRGB *feature_;
+      DepthAdaptiveRGB feature_;
+      Eigen::Vector3d mode_;
+      //std::vector<LabeledPixel> distribution_;
+      //std::vector<cv::Point3d> modes_;
     };
   }
 }

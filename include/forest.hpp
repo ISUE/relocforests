@@ -139,13 +139,13 @@ namespace ISUE {
       // Test time
       ////////////
 
-      std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      std::vector<Eigen::Vector3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
-        std::vector<cv::Point3d> modes;
+        std::vector<Eigen::Vector3d> modes;
 
         for (auto t : forest_) {
           auto m = t->Eval(row, col, rgb_image, depth_image);
-          modes.insert(modes.end(), m.begin(), m.end());
+          modes.push_back(m);
         }
 
         return modes;
@@ -199,8 +199,8 @@ namespace ISUE {
             auto modes = Eval(row, col, rgb_frame, depth_frame);
             auto point = modes.at(random_->Next(0, modes.size() - 1));
             // add point to output
-            Eigen::Vector3d tmp_out(point.x, point.y, point.z);
-            output << tmp_out;
+            //Eigen::Vector3d tmp_out(point.x, point.y, point.z);
+            output << point;
 
           }
           // kabsch algorithm
@@ -239,8 +239,8 @@ namespace ISUE {
             for (int i = 0; i < K; ++i) {
               double e_min = DBL_MAX;
 
-              for (auto m : modes) {
-                Eigen::Vector3d mode(m.x, m.y, m.z);
+              for (auto mode : modes) {
+                //Eigen::Vector3d mode(m.x, m.y, m.z);
                 Eigen::Vector3d e = mode - (hypotheses.at(i).pose * hypotheses.at(i).camera_space_point);
                 double e_norm = e.norm();
 

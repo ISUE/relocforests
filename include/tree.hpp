@@ -79,15 +79,15 @@ namespace ISUE {
       //  Evaluates weak learner. Decides whether the point should go left or right.
       //  Returns DECISION enum value.
       //DECISION eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
-      DECISION eval_learner(DepthAdaptiveRGB *feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
+      DECISION eval_learner(DepthAdaptiveRGB feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
       {
         bool valid = true;
-        float response = feature->GetResponse(depth_image, rgb_image, pos, valid);
+        float response = feature.GetResponse(depth_image, rgb_image, pos, valid);
 
         if (!valid) // no depth or out of bounds
           return DECISION::TRASH;
 
-        return (DECISION)(response >= feature->GetThreshold());
+        return (DECISION)(response >= feature.GetThreshold());
       }
 
       // V(S)
@@ -161,11 +161,14 @@ namespace ISUE {
           for (auto p : clustered_points)
             cluster_map[p]++;
 
-          std::vector<cv::Point3d> modes;
-          for (auto p : cluster_map)
-            modes.push_back(cv::Point3d(p.first.x, p.first.y, p.first.z));
+          std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
 
-          node->modes_ = modes;
+          for (auto p : cluster_map)
+            if (p.second > mode.second)
+              mode = p;
+
+
+          node->mode_ = Eigen::Vector3d(mode.first.x, mode.first.y, mode.first.z);
           node->is_leaf_ = true;
           return;
         }
@@ -182,7 +185,7 @@ namespace ISUE {
                 feature = 0;
         double minimum_objective = DBL_MAX;
 
-        std::vector<DepthAdaptiveRGB*> candidate_params;
+        std::vector<DepthAdaptiveRGB> candidate_params;
         std::vector<LabeledPixel> left_final, right_final;
 
 
@@ -243,11 +246,11 @@ namespace ISUE {
         train_recurse(root_, labeled_data);
       }
 
-      std::vector<cv::Point3d> eval_recursive(Node *node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      Eigen::Vector3d eval_recursive(Node *node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
 
         if (node->is_leaf_) {
-          return node->modes_;
+          return node->mode_;
         }
 
         DECISION val = eval_learner(node->feature_, depth_image, rgb_image, cv::Point2i(col, row));
@@ -265,7 +268,7 @@ namespace ISUE {
       }
 
       // Evaluate tree at a pixel
-      std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      Eigen::Vector3d Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
         return eval_recursive(root_, row, col, rgb_image, depth_image);
       }
