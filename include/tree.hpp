@@ -187,7 +187,7 @@ namespace ISUE {
         for (uint32_t i = 0; i < num_candidates; ++i) {
 
           // add candidate
-          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random_, settings_->image_width_, settings_->image_height_));
+          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random_));
 
           // partition data with candidate
           std::vector<LabeledPixel> left_data, right_data;

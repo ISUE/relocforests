@@ -62,13 +62,12 @@ namespace ISUE {
           throw std::runtime_error("Forest serialization failed");
       }
 
-      void Train()
+      // Train time
+      /////////////
+
+      std::vector<LabeledPixel> LabelData()
       {
-        // train each tree individually
-        int index = 1;
-        for (auto t : forest_) {
           std::vector<LabeledPixel> labeled_data;
-          std::cout << "[Tree " << index << "] " << "Generating Training Data.\n";
 
           // randomly choose frames
           for (int i = 0; i < settings_->num_frames_per_tree_; ++i) {
@@ -103,6 +102,18 @@ namespace ISUE {
               labeled_data.push_back(pixel);
             }
           }
+          return labeled_data;
+      }
+
+
+      void Train()
+      {
+        // train each tree individually
+        int index = 1;
+        for (auto t : forest_) {
+
+          std::cout << "[Tree " << index << "] " << "Generating Training Data.\n";
+          std::vector<LabeledPixel> labeled_data = LabelData();
 
           // train tree with set of pixels recursively
           std::cout << "[Tree " << index << "] " << "Training.\n";
@@ -119,6 +130,9 @@ namespace ISUE {
           index++;
         }
       }
+
+      // Test time
+      ////////////
 
       std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
@@ -153,15 +167,9 @@ namespace ISUE {
         }
       };
 
-      // Get pose hypothesis from depth and rgb frame
-      Eigen::Affine3d Test(cv::Mat rgb_frame, cv::Mat depth_frame)
+      std::vector<Hypothesis> CreateHypotheses(int K_init, cv::Mat rgb_frame, cv::Mat depth_frame)
       {
-        int K_init = 1024;
-        int K = K_init;
-
         std::vector<Hypothesis> hypotheses;
-        //std::vector<Eigen::Affine3d> hypotheses;
-        //std::vector<Eigen::Vector3d> x_values;
 
         // sample initial hypotheses
         for (uint16_t i = 0; i < K_init; ++i) {
@@ -193,13 +201,19 @@ namespace ISUE {
           // kabsch algorithm
           Eigen::Affine3d transform = Find3DAffineTransform(input, output);
           h.pose = transform;
-          //hypotheses.push_back(transform);
           h.energy = 0;
           hypotheses.push_back(h);
         }
 
-        // init energies
-        //std::vector<uint32_t> energies (K, 0);
+      }
+
+      // Get pose hypothesis from depth and rgb frame
+      Eigen::Affine3d Test(cv::Mat rgb_frame, cv::Mat depth_frame)
+      {
+        int K_init = 1024;
+        int K = K_init;
+
+        std::vector<Hypothesis> hypotheses = CreateHypotheses(K_init, rgb_frame, depth_frame);
 
         while (K > 1) {
           // sample set of B test pixels
@@ -238,14 +252,9 @@ namespace ISUE {
 
           // sort hypotheses 
           std::sort(hypotheses.begin(), hypotheses.end());
-
           K = K / 2; // discard half
-
           // refine hypotheses (kabsch)
-
-
         }
-
         // return best pose and energy        
         return hypotheses.front().pose;
       }
