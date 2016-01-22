@@ -1,7 +1,6 @@
 #include <iostream>
 
 #include "reader.hpp"
-#include "data.hpp"
 #include "settings.hpp"
 #include "forest.hpp"
 
@@ -13,26 +12,25 @@ int main(int argc, char *argv[]) {
     cout << "Usage: ./relocforests <path_to_association_file>";
     return 1;
   }
-  
+
   // get path
   string data_path(argv[1]);
 
   Reader *reader = new Reader();
-  reader->Load(data_path);
+  bool err = reader->Load(data_path);
+  if (err) {
+    return 1;
+  }
 
   // Get data from reader
   Data *data = reader->GetData();
 
-  Settings *settings = new Settings();
-
-
   // settings for forest
-  settings->num_trees_ = 5;
-  settings->max_tree_depth_ = 16;
-
-  // other settings
-  int num_frames_per_tree = 500;
-  int samples_per_frame = 5000;
+  Settings *settings = new Settings();
+  settings->fx = 525.0f;
+  settings->fy = 525.0f;
+  settings->cx = 319.5f;
+  settings->cy = 239.5f;
 
   // Create forest
   Forest *forest = new Forest(data, settings);
@@ -40,7 +38,14 @@ int main(int argc, char *argv[]) {
   // train forest
   forest->Train();
 
-  // test forest with random data 
+  // test forest with random data
+
+  cout << "Done Training.\n";
+
+  delete forest;
+  delete reader;
+  delete settings;
+
 
   return 0;
 }
