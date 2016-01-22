@@ -59,7 +59,7 @@ namespace ISUE {
         : Feature(offset_1, offset_2), color_channel_1_(color_channel_1), color_channel_2_(color_channel_2), tau_(tau)
       {};
 
-      static DepthAdaptiveRGB* CreateRandom(Random *random, int image_width, int image_height)
+      static DepthAdaptiveRGB* CreateRandom(Random *random)
       {
         cv::Point2i offset_1(random->Next(-130, 130), random->Next(-130, 130)); // Value from the paper -- +/- 130 pixel meters
         cv::Point2i offset_2(random->Next(-130, 130), random->Next(-130, 130));

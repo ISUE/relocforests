@@ -42,12 +42,12 @@ namespace ISUE {
     public:
       Tree()
       {
-        root = new Node();
+        root_ = new Node();
       };
 
       ~Tree()
       {
-        delete root;
+        delete root_;
       };
 
       void Serialize(std::ostream& stream) const
@@ -58,7 +58,7 @@ namespace ISUE {
         stream.write((const char*)(&majorVersion), sizeof(majorVersion));
         stream.write((const char*)(&minorVersion), sizeof(minorVersion));
 
-        stream.write((const char*)(&settings->max_tree_depth_), sizeof(settings->max_tree_depth_));
+        stream.write((const char*)(&settings_->max_tree_depth_), sizeof(settings_->max_tree_depth_));
 
         stream.write((const char*)(this), sizeof(this));
       }
@@ -133,7 +133,7 @@ namespace ISUE {
       void train_recurse(Node *node, std::vector<LabeledPixel> S) 
       {
         uint16_t height = traverse_to_root(node);
-        if (S.size() == 1 || height >= settings->max_tree_depth_) {
+        if (S.size() == 1 || height >= settings_->max_tree_depth_) {
 
           std::vector<Eigen::Vector3d> data;
 
@@ -187,7 +187,7 @@ namespace ISUE {
         for (uint32_t i = 0; i < num_candidates; ++i) {
 
           // add candidate
-          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random, settings->image_width_, settings->image_height_));
+          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random_, settings_->image_width_, settings_->image_height_));
 
           // partition data with candidate
           std::vector<LabeledPixel> left_data, right_data;
@@ -195,7 +195,7 @@ namespace ISUE {
           for (uint32_t j = 0; j < S.size(); ++j) {
             // todo throw away undefined vals
 
-            OUT val = eval_learner(data, S.at(j), candidate_params.at(i));
+            OUT val = eval_learner(data_, S.at(j), candidate_params.at(i));
 
             switch (val) {
             case LEFT:
@@ -235,10 +235,10 @@ namespace ISUE {
 
       void Train(Data *data, std::vector<LabeledPixel> labeled_data, Random *random, Settings *settings) 
       {
-        this->data = data;
-        this->random = random;
-        this->settings = settings;
-        train_recurse(this->root, labeled_data);
+        data_ = data;
+        random_ = random;
+        settings_ = settings;
+        train_recurse(root_, labeled_data);
       }
 
       std::vector<cv::Point3d> eval_recursive(Node *node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
@@ -268,15 +268,15 @@ namespace ISUE {
       // Evaluate tree at a pixel
       std::vector<cv::Point3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
-        return eval_recursive(root, row, col, rgb_image, depth_image);
+        return eval_recursive(root_, row, col, rgb_image, depth_image);
       }
 
 
     private:
-      Node *root;
-      Data *data;
-      Random *random;
-      Settings *settings;
+      Node *root_;
+      Data *data_;
+      Random *random_;
+      Settings *settings_;
       const char* binaryFileHeader_ = "ISUE.RelocForests.Tree";
     };
   }
