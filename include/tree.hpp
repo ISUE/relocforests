@@ -65,20 +65,19 @@ namespace ISUE {
 
 
       // learner output
-      enum OUT { LEFT, RIGHT, TRASH };
+      enum DECISION { LEFT, RIGHT, TRASH };
 
       //  Evaluates weak learner. Decides whether the point should go left or right.
-      //  Returns OUT enum value.
-      OUT eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
+      //  Returns DECISION enum value.
+      DECISION eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
       {
-        auto response = feature->GetResponse(data, pixel);
-        //auto response1 = feature->GetResponse(data->GetDepthImage(pixel.frame_), data->GetDepthImage(pixel.frame_), pixel);
+        bool valid = true;
+        float response = feature->GetResponse(data->GetDepthImage(pixel.frame_), data->GetRGBImage(pixel.frame_), pixel.pos_, valid);
 
-        bool is_valid_point = response.second;
-        if (!is_valid_point) // no depth or out of bounds
-          return OUT::TRASH;
+        if (!valid) // no depth or out of bounds
+          return DECISION::TRASH;
 
-        return (OUT)(response.first >= feature->GetThreshold());
+        return (DECISION)(response >= feature->GetThreshold());
       }
 
       // V(S)
@@ -109,17 +108,10 @@ namespace ISUE {
       double objective_function(std::vector<LabeledPixel> data, std::vector<LabeledPixel> left, std::vector<LabeledPixel> right)
       {
         double var = variance(data);
-        double sum;
+        double left_val = ((double)left.size() / (double)data.size()) * variance(left);
+        double right_val = ((double)right.size() / (double)data.size()) * variance(right);
 
-        // left
-        double left_var = variance(left);
-        double left_val = ((double)left.size() / (double)data.size()) * left_var;
-        // right
-        double right_var = variance(right);
-        double right_val = ((double)right.size() / (double)data.size()) * right_var;
-
-        sum = left_val + right_val;
-        return var - sum;
+        return var - (left_val + right_val);
       }
 
       // Returns height from current node to root node.
@@ -195,7 +187,7 @@ namespace ISUE {
           for (uint32_t j = 0; j < S.size(); ++j) {
             // todo throw away undefined vals
 
-            OUT val = eval_learner(data_, S.at(j), candidate_params.at(i));
+            DECISION val = eval_learner(data_, S.at(j), candidate_params.at(i));
 
             switch (val) {
             case LEFT:
@@ -248,9 +240,11 @@ namespace ISUE {
           return node->modes_;
         }
 
-        auto pair = node->feature_->GetResponse(depth_image, rgb_image, cv::Point2i(col, row));
+        bool valid = true;
 
-        OUT val = (OUT)(pair.first >= node->feature_->GetThreshold());
+        float response = node->feature_->GetResponse(depth_image, rgb_image, cv::Point2i(col, row), valid);
+
+        DECISION val = (DECISION)(response >= node->feature_->GetThreshold());
 
         switch (val) {
         case LEFT:
