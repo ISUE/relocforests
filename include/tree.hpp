@@ -9,6 +9,7 @@
 #include <vector>
 #include <cstdint>
 #include <ctime>
+#include <queue>
 
 #include <unordered_map>
 
@@ -43,6 +44,7 @@ namespace ISUE {
       Tree()
       {
         root_ = new Node();
+        root_->depth_ = 0;
       };
 
       ~Tree()
@@ -52,8 +54,10 @@ namespace ISUE {
 
       void WriteTree(std::ostream& o, Node *node) const
       {
-        if (node == nullptr)
-          o.write((const char*)"null", sizeof("null"));
+        if (node == nullptr) {
+          o.write("#", sizeof("#"));
+          return;
+        }
         node->Serialize(o);
         WriteTree(o, node->left_);
         WriteTree(o, node->right_);
@@ -67,11 +71,43 @@ namespace ISUE {
         stream.write((const char*)(&majorVersion), sizeof(majorVersion));
         stream.write((const char*)(&minorVersion), sizeof(minorVersion));
 
-        stream.write((const char*)(&settings_->max_tree_depth_), sizeof(settings_->max_tree_depth_));
+        //stream.write((const char*)(&settings_->max_tree_depth_), sizeof(settings_->max_tree_depth_));
 
         WriteTree(stream, root_);
       }
 
+      Node* ReadTree(std::istream& i)
+      {
+        int flag = i.peek();
+        char val = (char)flag;
+        if (val == '#') {
+          return nullptr;
+        }
+        Node *tmp = new Node();
+        tmp->Deserialize(i);
+        tmp->left_ = ReadTree(i);
+        tmp->right_ = ReadTree(i);
+        return tmp;
+      }
+
+      Tree* Deserialize(std::istream& stream)
+      {
+        settings_ = new Settings();
+
+        std::vector<char> buffer(strlen(binaryFileHeader_) + 1);
+        stream.read(&buffer[0], strlen(binaryFileHeader_));
+        buffer[buffer.size() - 1] = '\0';
+        if (strcmp(&buffer[0], binaryFileHeader_) != 0)
+          throw std::runtime_error("Unsupported forest format.");
+
+        const int majorVersion = 0, minorVersion = 0;
+        stream.read((char*)(&majorVersion), sizeof(majorVersion));
+        stream.read((char*)(&minorVersion), sizeof(minorVersion));
+
+
+        root_ = ReadTree(stream);
+
+      }
 
       // learner output
       enum DECISION { LEFT, RIGHT, TRASH };
@@ -125,17 +161,19 @@ namespace ISUE {
       }
 
       // Returns height from current node to root node.
+      /*
       uint32_t traverse_to_root(Node *node) {
         if (node == nullptr)
           return 0;
         return 1 + traverse_to_root(node->parent_);
       }
+      */
 
 
       void train_recurse(Node *node, std::vector<LabeledPixel> S) 
       {
-        uint16_t height = traverse_to_root(node);
-        if (S.size() == 1 || height >= settings_->max_tree_depth_) {
+        uint16_t height = node->depth_;
+        if (S.size() == 1 || (height >= settings_->max_tree_depth_ && S.size() >= 1)) {
 
           std::vector<Eigen::Vector3d> data;
 
@@ -147,9 +185,9 @@ namespace ISUE {
           }
 
           // cluster
-          MeanShift *ms = new MeanShift(nullptr);
+          MeanShift ms = MeanShift(nullptr);
           double kernel_bandwidth = 0.01f; // gaussian
-          std::vector<Eigen::Vector3d> cluster = ms->cluster(data, kernel_bandwidth);
+          std::vector<Eigen::Vector3d> cluster = ms.cluster(data, kernel_bandwidth);
 
           // find mode
           std::vector<Point3D> clustered_points;
@@ -170,16 +208,16 @@ namespace ISUE {
 
           node->mode_ = Eigen::Vector3d(mode.first.x, mode.first.y, mode.first.z);
           node->is_leaf_ = true;
+          node->left_ = nullptr;
+          node->right_ = nullptr;
           return;
         }
         else if (S.size() == 0) {
-          delete node;
-          node = nullptr;
+          //delete node;
+          //node = nullptr;
           return;
         }
 
-        node->is_split_ = true;
-        node->is_leaf_ = false;
 
         uint32_t num_candidates = 5,
                 feature = 0;
@@ -229,10 +267,13 @@ namespace ISUE {
         }
 
         // set feature
+        node->is_split_ = true;
+        node->is_leaf_ = false;
         node->feature_ = candidate_params.at(feature);
         node->left_ = new Node();
         node->right_ = new Node();
-        node->left_->parent_ = node->right_->parent_ = node;
+        node->left_->depth_ = node->right_->depth_ = node->depth_ + 1;
+        //node->left_->parent_ = node->right_->parent_ = node;
 
         train_recurse(node->left_, left_final);
         train_recurse(node->right_, right_final);

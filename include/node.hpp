@@ -20,7 +20,7 @@ namespace ISUE {
     public:
       Node()
       {
-        parent_ = nullptr;
+        //parent_ = nullptr;
         left_ = nullptr;
         right_ = nullptr;
       };
@@ -35,6 +35,7 @@ namespace ISUE {
       {
         Serialize_(o, is_leaf_);
         Serialize_(o, is_split_);
+        Serialize_(o, depth_);
         Serialize_(o, feature_);
         Serialize_(o, mode_);
       }
@@ -43,20 +44,18 @@ namespace ISUE {
       {
         Deserialize_(i, is_leaf_);
         Deserialize_(i, is_split_);
+        Deserialize_(i, depth_);
         Deserialize_(i, feature_);
         Deserialize_(i, mode_);
       }
 
       bool is_leaf_ = false;
       bool is_split_ = false;
-      Node *parent_;
+      uint32_t depth_ = 0;
       Node *left_;
       Node *right_;
-      //DepthAdaptiveRGB *feature_;
       DepthAdaptiveRGB feature_;
       Eigen::Vector3d mode_;
-      //std::vector<LabeledPixel> distribution_;
-      //std::vector<cv::Point3d> modes_;
     };
   }
 }
