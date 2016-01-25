@@ -55,7 +55,7 @@ namespace ISUE {
       void WriteTree(std::ostream& o, Node *node) const
       {
         if (node == nullptr) {
-          o.write("#", sizeof("#"));
+          o.write("#", sizeof('#'));
           return;
         }
         node->Serialize(o);
@@ -81,6 +81,7 @@ namespace ISUE {
         int flag = i.peek();
         char val = (char)flag;
         if (val == '#') {
+          i.get();
           return nullptr;
         }
         Node *tmp = new Node();
