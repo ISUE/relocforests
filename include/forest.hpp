@@ -30,6 +30,16 @@ namespace ISUE {
         random_ = new Random();
       };
 
+      // Init forest from binary file
+      Forest(Data *data, Settings *settings, const std::string& path) 
+        : data_(data), settings_(settings)
+      {
+        random_ = new Random();
+
+        std::ifstream i(path, std::ios_base::binary);
+        this->Deserialize(i);
+      }
+
       ~Forest()
       {
         delete random_;
@@ -60,6 +70,33 @@ namespace ISUE {
         
         if (stream.bad())
           throw std::runtime_error("Forest serialization failed");
+      }
+
+      void Deserialize(std::istream& stream)
+      {
+
+        std::vector<char> buffer(strlen(binaryFileHeader_) + 1);
+        stream.read(&buffer[0], strlen(binaryFileHeader_));
+        buffer[buffer.size() - 1] = '\0';
+
+        if (strcmp(&buffer[0], binaryFileHeader_) != 0)
+          throw std::runtime_error("Unsupported forest format.");
+
+
+        const int majorVersion = 0, minorVersion = 0;
+        stream.read((char*)(&majorVersion), sizeof(majorVersion));
+        stream.read((char*)(&minorVersion), sizeof(minorVersion));
+
+
+        int treeCount = 0;
+        stream.read((char*)(&treeCount), sizeof(treeCount));
+
+        int i = 0;
+        for (i = 0; i < treeCount; ++i) {
+          Tree *t = new Tree();
+          t->Deserialize(stream);
+          forest_.push_back(t);
+        }
       }
 
       // Train time
@@ -124,10 +161,10 @@ namespace ISUE {
 
           t->Train(data_, labeled_data, random_, settings_);
 
-          std::ofstream o("swag.tree", std::ios_base::binary);
-          t->Serialize(o);
+          //std::ofstream o("swag.tree", std::ios_base::binary);
+          //t->Serialize(o);
 
-          std::cout << "Wrote tree\n";
+          //std::cout << "Wrote tree\n";
 
           duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
           std::cout << "[Tree " << index << "] "
@@ -180,8 +217,8 @@ namespace ISUE {
         for (uint16_t i = 0; i < K_init; ++i) {
           Hypothesis h;
           // 3 points
-          Eigen::Matrix3Xd input(3, 3);
-          Eigen::Matrix3Xd output(3, 3);
+          Eigen::Matrix3Xd input(3, 100);
+          Eigen::Matrix3Xd output(3, 100);
 
           for (uint16_t j = 0; j < 3; ++j) {
             int col = random_->Next(0, settings_->image_width_);
@@ -194,13 +231,15 @@ namespace ISUE {
             Eigen::Vector3d tmp_in(X, Y, Z);
             h.camera_space_point = tmp_in;
             // add to input
-            input << tmp_in;
+            //input += tmp_in;
+            input.col(j) = tmp_in;
 
-            auto modes = Eval(row, col, rgb_frame, depth_frame);
-            auto point = modes.at(random_->Next(0, modes.size() - 1));
+            std::vector<Eigen::Vector3d> modes = Eval(row, col, rgb_frame, depth_frame);
+            Eigen::Vector3d point = modes.at(random_->Next(0, modes.size() - 1));
             // add point to output
             //Eigen::Vector3d tmp_out(point.x, point.y, point.z);
-            output << point;
+            //output << point;
+            output.col(j) = point;
 
           }
           // kabsch algorithm
@@ -210,6 +249,7 @@ namespace ISUE {
           hypotheses.push_back(h);
         }
 
+        return hypotheses;
       }
 
       // Get pose hypothesis from depth and rgb frame
