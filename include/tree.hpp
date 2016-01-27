@@ -110,6 +110,23 @@ namespace ISUE {
 
       }
 
+      bool IsValidRecurse(Node *node, bool prevSplit)
+      {
+
+        if (!node && prevSplit)
+          return false;
+
+        if (node->is_leaf_)
+          return true;
+
+        return IsValidRecurse(node->left_, node->is_split_) && IsValidRecurse(node->right_, node->is_split_);
+      }
+
+      bool IsValid()
+      {
+        return IsValidRecurse(root_, true);
+      }
+
       // learner output
       enum DECISION { LEFT, RIGHT, TRASH };
 
@@ -170,55 +187,55 @@ namespace ISUE {
       }
       */
 
+      Eigen::Vector3d GetLeafMode(std::vector<LabeledPixel> S)
+      {
+        std::vector<Eigen::Vector3d> data;
+
+        // calc mode for leaf, sub-sample N_SS = 500
+        for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
+          auto p = S.at(i);
+          Eigen::Vector3d point{ p.label_.x, p.label_.y, p.label_.z };
+          data.push_back(point);
+        }
+
+        // cluster
+        MeanShift ms = MeanShift(nullptr);
+        double kernel_bandwidth = 0.01f; // gaussian
+        std::vector<Eigen::Vector3d> cluster = ms.cluster(data, kernel_bandwidth);
+
+        // find mode
+        std::vector<Point3D> clustered_points;
+        for (auto c : cluster)
+          clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
+
+        Point3DMap cluster_map;
+
+        for (auto p : clustered_points)
+          cluster_map[p]++;
+
+        std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
+
+        for (auto p : cluster_map)
+          if (p.second > mode.second)
+            mode = p;
+
+
+        return Eigen::Vector3d(mode.first.x, mode.first.y, mode.first.z);
+
+      }
+
 
       void train_recurse(Node *node, std::vector<LabeledPixel> S) 
       {
         uint16_t height = node->depth_;
-        if (S.size() == 1 || (height >= settings_->max_tree_depth_ && S.size() >= 1)) {
+        if (S.size() == 1 || ((height == settings_->max_tree_depth_ - 1) && S.size() >= 1)) {
 
-          std::vector<Eigen::Vector3d> data;
-
-          // calc mode for leaf, sub-sample N_SS = 500
-          for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
-            auto p = S.at(i);
-            Eigen::Vector3d point { p.label_.x, p.label_.y, p.label_.z };
-            data.push_back(point);
-          }
-
-          // cluster
-          MeanShift ms = MeanShift(nullptr);
-          double kernel_bandwidth = 0.01f; // gaussian
-          std::vector<Eigen::Vector3d> cluster = ms.cluster(data, kernel_bandwidth);
-
-          // find mode
-          std::vector<Point3D> clustered_points;
-          for (auto c : cluster)
-            clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
-
-          Point3DMap cluster_map;
-
-          for (auto p : clustered_points)
-            cluster_map[p]++;
-
-          std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
-
-          for (auto p : cluster_map)
-            if (p.second > mode.second)
-              mode = p;
-
-
-          node->mode_ = Eigen::Vector3d(mode.first.x, mode.first.y, mode.first.z);
+          node->mode_ = GetLeafMode(S);
           node->is_leaf_ = true;
           node->left_ = nullptr;
           node->right_ = nullptr;
           return;
         }
-        else if (S.size() == 0) {
-          //delete node;
-          //node = nullptr;
-          return;
-        }
-
 
         uint32_t num_candidates = 5,
                 feature = 0;
@@ -265,6 +282,22 @@ namespace ISUE {
             left_final = left_data;
             right_final = right_data;
           }
+        }
+
+        // split went only one way
+        if (left_final.empty()) {
+          node->mode_ = GetLeafMode(right_final);
+          node->is_leaf_ = true;
+          node->left_ = nullptr;
+          node->right_ = nullptr;
+          return;
+        }
+        if (right_final.empty()) {
+          node->mode_ = GetLeafMode(left_final);
+          node->is_leaf_ = true;
+          node->left_ = nullptr;
+          node->right_ = nullptr;
+          return;
         }
 
         // set feature

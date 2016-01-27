@@ -99,6 +99,15 @@ namespace ISUE {
         }
       }
 
+      bool IsValid()
+      {
+        bool ret = true;
+        for (auto tree : forest_) {
+          ret = ret && tree->IsValid();
+        }
+        return ret;
+      }
+
       // Train time
       /////////////
 
