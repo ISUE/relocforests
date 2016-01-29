@@ -42,7 +42,7 @@ namespace ISUE {
         std::string path_to_assoc_file_ = path_to_data;
         CameraInfo startpos;
 
-        std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d> > poses_from_assocfile;
+        //std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d> > poses_from_assocfile;
 
         std::fstream associationFile;
         float junkstamp;
@@ -78,7 +78,7 @@ namespace ISUE {
             stream >> junkstamp;
             stream >> rgbName;
 
-            poses_from_assocfile.push_back(std::pair<Eigen::Matrix3d, Eigen::Vector3d>(Eigen::Quaterniond(qw, qx, qy, qz).toRotationMatrix(), Eigen::Vector3d(tx, ty, tz)));
+            data->poses_eigen_.push_back(std::pair<Eigen::Matrix3d, Eigen::Vector3d>(Eigen::Quaterniond(qw, qx, qy, qz).toRotationMatrix(), Eigen::Vector3d(tx, ty, tz)));
 
             data->depth_names_.push_back(depthName);
             data->rgb_names_.push_back(rgbName);
@@ -96,8 +96,8 @@ namespace ISUE {
           float cx = 319.5f;
           float cy = 239.5f;
 
-          for (unsigned int i = 0; i < poses_from_assocfile.size(); i++) {
-            data->poses_.push_back(CameraInfo::kinectPoseFromEigen(poses_from_assocfile[i], fx, fy, cx, cy));
+          for (unsigned int i = 0; i < data->poses_eigen_.size(); i++) {
+            data->poses_.push_back(CameraInfo::kinectPoseFromEigen(data->poses_eigen_[i], fx, fy, cx, cy));
             data->poses_.back().setExtrinsic(startpos.getExtrinsic()*data->poses_.back().getExtrinsic());
             /*
             depth_names_[i] = path_to_assoc_file_ + depth_names_[i];

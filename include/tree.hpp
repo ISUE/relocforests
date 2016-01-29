@@ -5,6 +5,8 @@
 #include "settings.hpp"
 #include "data.hpp"
 #include "MeanShift.hpp"
+#include <Eigen/Geometry>
+#include <Eigen/StdVector>
 
 #include <vector>
 #include <cstdint>
@@ -323,9 +325,6 @@ namespace ISUE {
 
       Eigen::Vector3d eval_recursive(Node *node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
-        //if (!node)
-        //  return Eigen::Vector3d(0,0,0);
-
         if (node->is_leaf_) {
           return node->mode_;
         }

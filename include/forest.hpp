@@ -15,6 +15,7 @@
 #include <fstream>
 
 #include <Eigen/Geometry>
+#include <Eigen/StdVector>
 
 #include "opencv2/opencv.hpp"
 
@@ -190,7 +191,7 @@ namespace ISUE {
         std::vector<Eigen::Vector3d> modes;
 
         for (auto t : forest_) {
-          auto m = t->Eval(row, col, rgb_image, depth_image);
+          Eigen::Vector3d m = t->Eval(row, col, rgb_image, depth_image);
           modes.push_back(m);
         }
 
@@ -230,10 +231,17 @@ namespace ISUE {
           Eigen::Matrix3Xd output(3, 100);
 
           for (uint16_t j = 0; j < 3; ++j) {
-            int col = random_->Next(0, settings_->image_width_);
-            int row = random_->Next(0, settings_->image_height_);
-            // todo: get camera space points?
-            double Z = (float)depth_frame.at<ushort>(row, col) / (float)settings_->depth_factor_;
+            int col = 0, row = 0;
+            double Z = 0.0;
+            ushort test = 0;
+            do {
+              col = random_->Next(0, settings_->image_width_);
+              row = random_->Next(0, settings_->image_height_);
+              // todo: get camera space points?
+              test = depth_frame.at<ushort>(row, col);
+              Z = (double)test / (double)settings_->depth_factor_;
+            } while (test == 0);
+
             double Y = (row - settings_->cy) * Z / settings_->fy;
             double X = (col - settings_->cx) * Z / settings_->fx;
 

@@ -18,6 +18,7 @@ namespace ISUE {
 
     class Node {
     public:
+      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       Node()
       {
         //parent_ = nullptr;
