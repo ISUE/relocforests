@@ -284,7 +284,7 @@ namespace ISUE {
       }
 
       // Get pose hypothesis from depth and rgb frame
-      vector<Hypothesis> Test(cv::Mat rgb_frame, cv::Mat depth_frame)
+      Eigen::Affine3d Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
         int K_init = 1024;
         int K = K_init;
@@ -372,8 +372,7 @@ namespace ISUE {
           }
         }
         // return best pose and energy        
-       //return hypotheses.front().pose;
-        return hypotheses;
+        return hypotheses.front.front.pose;
       }
 
     private:
