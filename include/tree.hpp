@@ -323,30 +323,32 @@ namespace ISUE {
         train_recurse(root_, labeled_data);
       }
 
-      Eigen::Vector3d eval_recursive(Node *node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      Eigen::Vector3d eval_recursive(Node **node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image, bool &valid)
       {
-        if (node->is_leaf_) {
-          return node->mode_;
+        if ((*node)->is_leaf_) {
+          return (*node)->mode_;
         }
 
-        DECISION val = eval_learner(node->feature_, depth_image, rgb_image, cv::Point2i(col, row));
+        DECISION val = eval_learner((*node)->feature_, depth_image, rgb_image, cv::Point2i(col, row));
 
         switch (val) {
         case LEFT:
-          eval_recursive(node->left_, row, col, rgb_image, depth_image);
+          return eval_recursive(&(*node)->left_, row, col, rgb_image, depth_image, valid);
           break;
         case RIGHT:
-          eval_recursive(node->right_, row, col, rgb_image, depth_image);
+          return eval_recursive(&(*node)->right_, row, col, rgb_image, depth_image, valid);
           break;
         case TRASH:
+          valid = false;
           break;
         }
       }
 
       // Evaluate tree at a pixel
-      Eigen::Vector3d Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
+      Eigen::Vector3d Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image, bool &valid)
       {
-        return eval_recursive(root_, row, col, rgb_image, depth_image);
+        auto m = eval_recursive(&root_, row, col, rgb_image, depth_image, valid);
+        return m;
       }
 
 

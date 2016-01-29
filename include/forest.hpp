@@ -186,13 +186,29 @@ namespace ISUE {
       // Test time
       ////////////
 
+      class Hypothesis {
+      public:
+        Eigen::Affine3d pose;
+        Eigen::Vector3d camera_space_point;
+        Eigen::Matrix3Xd input;
+        Eigen::Matrix3Xd output;
+        uint32_t energy;
+
+        bool operator < (const Hypothesis& h) const
+        {
+          return (energy < h.energy);
+        }
+      };
+
       std::vector<Eigen::Vector3d> Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image)
       {
         std::vector<Eigen::Vector3d> modes;
 
         for (auto t : forest_) {
-          Eigen::Vector3d m = t->Eval(row, col, rgb_image, depth_image);
-          modes.push_back(m);
+          bool valid = true;
+          Eigen::Vector3d m = t->Eval(row, col, rgb_image, depth_image, valid);
+          if (valid)
+            modes.push_back(m);
         }
 
         return modes;
@@ -201,23 +217,9 @@ namespace ISUE {
 
       uint8_t tophat_error(double val)
       {
-        if (val > 0 && val < 0.1)
-          return 1;
-        else
-          return 0;
+        return !(val > 0 && val < 0.1);
       }
-
-      class Hypothesis {
-      public:
-        Eigen::Affine3d pose;
-        Eigen::Vector3d camera_space_point;
-        uint32_t energy;
-
-        bool operator < (const Hypothesis& h) const
-        {
-          return (energy < h.energy);
-        }
-      };
+      
 
       std::vector<Hypothesis> CreateHypotheses(int K_init, cv::Mat rgb_frame, cv::Mat depth_frame)
       {
@@ -227,8 +229,8 @@ namespace ISUE {
         for (uint16_t i = 0; i < K_init; ++i) {
           Hypothesis h;
           // 3 points
-          Eigen::Matrix3Xd input(3, 100);
-          Eigen::Matrix3Xd output(3, 100);
+          h.input.resize(3, 3);
+          h.output.resize(3, 3);
 
           for (uint16_t j = 0; j < 3; ++j) {
             int col = 0, row = 0;
@@ -248,19 +250,33 @@ namespace ISUE {
             Eigen::Vector3d tmp_in(X, Y, Z);
             h.camera_space_point = tmp_in;
             // add to input
-            //input += tmp_in;
-            input.col(j) = tmp_in;
+            h.input.col(j) = tmp_in;
 
             std::vector<Eigen::Vector3d> modes = Eval(row, col, rgb_frame, depth_frame);
-            Eigen::Vector3d point = modes.at(random_->Next(0, modes.size() - 1));
-            // add point to output
-            //Eigen::Vector3d tmp_out(point.x, point.y, point.z);
-            //output << point;
-            output.col(j) = point;
+            if (modes.empty()) {
+              --j;
+            }
+            else {
+              Eigen::Vector3d point;
+              if (modes.size() > 1)
+                point = modes.at(random_->Next(0, modes.size() - 1));
+              else
+                point = modes.front();
 
+              // add point to output
+              h.output.col(j) = point;
+            }
           }
+
+          //TestFind3DAffineTransform();
+
+          //std::cout << h.input << std::endl;
+          //std::cout << h.output << std::endl;
+
           // kabsch algorithm
-          Eigen::Affine3d transform = Find3DAffineTransform(input, output);
+          Eigen::Affine3d transform = Find3DAffineTransform(h.input, h.output);
+          //std::cout << transform.linear() << std::endl;
+          //std::cout << transform.translation() << std::endl;
           h.pose = transform;
           h.energy = 0;
           hypotheses.push_back(h);
@@ -270,7 +286,7 @@ namespace ISUE {
       }
 
       // Get pose hypothesis from depth and rgb frame
-      Eigen::Affine3d Test(cv::Mat rgb_frame, cv::Mat depth_frame)
+      vector<Hypothesis> Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
         int K_init = 1024;
         int K = K_init;
@@ -278,6 +294,7 @@ namespace ISUE {
         std::vector<Hypothesis> hypotheses = CreateHypotheses(K_init, rgb_frame, depth_frame);
 
         while (K > 1) {
+
           // sample set of B test pixels
           std::vector<cv::Point2i> test_pixels;
           int batch_size = 500; // todo put in settings
@@ -295,30 +312,66 @@ namespace ISUE {
 
             for (int i = 0; i < K; ++i) {
               double e_min = DBL_MAX;
+              Eigen::Vector3d best;
 
               for (auto mode : modes) {
-                //Eigen::Vector3d mode(m.x, m.y, m.z);
                 Eigen::Vector3d e = mode - (hypotheses.at(i).pose * hypotheses.at(i).camera_space_point);
                 double e_norm = e.norm();
 
                 if (e_norm < e_min) {
                   e_min = e_norm;
+                  best = mode;
                 }
               }
               // update energy
               hypotheses.at(i).energy += tophat_error(e_min); // todo make sure this is right
+
               if (tophat_error(e_min) == 0) { // inlier
+
+                
+                ushort test = depth_frame.at<ushort>(p);
+                double Z = (double)test / (double)settings_->depth_factor_;
+                double Y = (p.y - settings_->cy) * Z / settings_->fy;
+                double X = (p.x - settings_->cx) * Z / settings_->fx;
+
+                if (test != 0) {
+                  Eigen::Vector3d tmp_in(X, Y, Z);
+
+                  hypotheses.at(i).input.conservativeResize(3, hypotheses.at(i).input.cols() + 1);
+                  hypotheses.at(i).input.col(hypotheses.at(i).input.cols() - 1) = tmp_in;
+
+                  hypotheses.at(i).output.conservativeResize(3, hypotheses.at(i).output.cols() + 1);
+                  hypotheses.at(i).output.col(hypotheses.at(i).output.cols() - 1) = best;
+                }
               }
+              auto deal = hypotheses.at(i).output;
             }
           }
 
           // sort hypotheses 
-          std::sort(hypotheses.begin(), hypotheses.end());
+          std::sort(hypotheses.begin(), hypotheses.begin() + K);
+
           K = K / 2; // discard half
+
           // refine hypotheses (kabsch)
+          for (int i = 0; i < K; ++i) {
+            //std::cout << "output\n";
+            //std::cout << hypotheses.at(i).output << std::endl;
+            //std::cout << "input\n";
+            //std::cout << hypotheses.at(i).input << std::endl;
+
+            //std::cout << "before\n";
+            //std::cout << hyp.pose.linear() << std::endl;
+            //std::cout << hyp.pose.rotation() << std::endl;
+            hypotheses.at(i).pose = Find3DAffineTransform(hypotheses.at(i).input, hypotheses.at(i).output);
+            //std::cout << "after\n";
+            //std::cout << hypotheses.at(i).pose.linear() << std::endl;
+            //std::cout << hypotheses.at(i).pose.rotation() << std::endl;
+          }
         }
         // return best pose and energy        
-        return hypotheses.front().pose;
+       //return hypotheses.front().pose;
+        return hypotheses;
       }
 
     private:

@@ -33,11 +33,38 @@ int main(int argc, char *argv[]) {
   settings->cy = 239.5f;
 
   // Create forest
-  Forest *forest = new Forest(data, settings);
+  Forest *forest = new Forest(data, settings, "forest.rf");
 
+  bool check = forest->IsValid();
   // train forest
-  forest->Train();
-  forest->Serialize("forest.rf");
+  //forest->Train();
+  //forest->Serialize("forest.rf");
+  auto hypotheses = forest->Test(data->GetRGBImage(54), data->GetDepthImage(54));
+  
+
+  auto known_pose = data->poses_eigen_.at(54);
+
+  for (auto h : hypotheses) {
+    auto pose = h.pose;
+
+    auto rot = pose.rotation();
+    auto lin = pose.linear();
+    auto trans = pose.translation();
+
+    cout << "found pose" << endl;
+    cout << rot << endl << endl;
+    cout << lin << endl;
+    cout << trans << endl;
+
+    cout << "known pose" << endl;
+    cout << known_pose.first << endl;
+    cout << known_pose.second << endl;
+    if ((known_pose.first - pose.linear()).cwiseAbs().maxCoeff() > 1e-13 ||
+      (known_pose.second - pose.translation()).cwiseAbs().maxCoeff() > 1e-13)
+      cout << "Pose could not be found\n";
+    else
+      cout << "Pose was found!\n";
+  }
 
   // test forest with random data
 
