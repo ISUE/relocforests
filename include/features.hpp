@@ -75,7 +75,7 @@ namespace ISUE {
         cv::Point2i offset_2(random->Next(-130, 130), random->Next(-130, 130));
         int color_channel_1 = random->Next(0, 2);
         int color_channel_2 = random->Next(0, 2);
-        int tau_ = random->Next(0, 12); // todo figure out a good value, emperical
+        int tau_ = random->Next(-128, 128);
         return DepthAdaptiveRGB(offset_1, offset_2, color_channel_1, color_channel_2, tau_);
       }
 

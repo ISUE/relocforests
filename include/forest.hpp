@@ -132,17 +132,21 @@ namespace ISUE {
               float Y = (row - settings_->cy) * Z / settings_->fy;
               float X = (col - settings_->cx) * Z / settings_->fx;
 
-              cv::Point3f label(X, Y, Z);
+              //cv::Point3f label(X, Y, Z);
+              Eigen::Vector3d p_camera(X, Y, Z);
+
+              Eigen::Vector3d label_e = data_->poses_eigen_.at(curr_frame).first * p_camera + data_->poses_eigen_.at(curr_frame).second;
 
               // convert label to world coordinates
-              CameraInfo pose = data_->poses_.at(curr_frame);
-              cv::Mat R = pose.getRotation();
-              cv::Mat T = pose.getTranslation();
+              //CameraInfo pose = data_->poses_.at(curr_frame);
+              //cv::Mat R = pose.getRotation();
+              //cv::Mat T = pose.getTranslation();
 
-              cv::Mat P(label, true);
-              P.convertTo(P, CV_64FC2); // fix exception when doing operations with R, T
-              cv::Mat C = R * P + T;
-              label = cv::Point3f(C);
+              //cv::Mat P(label, true);
+              //P.convertTo(P, CV_64FC2); // fix exception when doing operations with R, T
+              //cv::Mat C = R * P + T;
+              //label = cv::Point3f(C);
+              cv::Point3f label(label_e.x(), label_e.y(), label_e.z());
 
               // store labeled pixel
               LabeledPixel pixel(curr_frame, cv::Point2i(col, row), label);
@@ -170,11 +174,6 @@ namespace ISUE {
           start = std::clock();
 
           t->Train(data_, labeled_data, random_, settings_);
-
-          //std::ofstream o("swag.tree", std::ios_base::binary);
-          //t->Serialize(o);
-
-          //std::cout << "Wrote tree\n";
 
           duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
           std::cout << "[Tree " << index << "] "
@@ -239,7 +238,6 @@ namespace ISUE {
             do {
               col = random_->Next(0, settings_->image_width_);
               row = random_->Next(0, settings_->image_height_);
-              // todo: get camera space points?
               test = depth_frame.at<ushort>(row, col);
               Z = (double)test / (double)settings_->depth_factor_;
             } while (test == 0);
@@ -247,10 +245,10 @@ namespace ISUE {
             double Y = (row - settings_->cy) * Z / settings_->fy;
             double X = (col - settings_->cx) * Z / settings_->fx;
 
-            Eigen::Vector3d tmp_in(X, Y, Z);
-            h.camera_space_point = tmp_in;
+            Eigen::Vector3d p_camera(X, Y, Z);
+            h.camera_space_point = p_camera;
             // add to input
-            h.input.col(j) = tmp_in;
+            h.input.col(j) = p_camera;
 
             std::vector<Eigen::Vector3d> modes = Eval(row, col, rgb_frame, depth_frame);
             if (modes.empty()) {
@@ -310,41 +308,45 @@ namespace ISUE {
             // evaluate forest to get modes (union)
             auto modes = Eval(p.y, p.x, rgb_frame, depth_frame);
 
+            ushort test = depth_frame.at<ushort>(p);
+            double Z = (double)test / (double)settings_->depth_factor_;
+            double Y = (p.y - settings_->cy) * Z / settings_->fy;
+            double X = (p.x - settings_->cx) * Z / settings_->fx;
+
+            Eigen::Vector3d p_camera(X, Y, Z);
+
+
             for (int i = 0; i < K; ++i) {
               double e_min = DBL_MAX;
-              Eigen::Vector3d best;
+              Eigen::Vector3d best_mode;
+              Eigen::Vector3d best_camera_p;
 
               for (auto mode : modes) {
-                Eigen::Vector3d e = mode - (hypotheses.at(i).pose * hypotheses.at(i).camera_space_point);
+                Eigen::Vector3d e = mode - hypotheses.at(i).pose * p_camera;
                 double e_norm = e.norm();
 
                 if (e_norm < e_min) {
                   e_min = e_norm;
-                  best = mode;
+                  best_mode = mode;
+                  best_camera_p = p_camera;
                 }
               }
+
               // update energy
-              hypotheses.at(i).energy += tophat_error(e_min); // todo make sure this is right
+              hypotheses.at(i).energy += tophat_error(e_min);
 
-              if (tophat_error(e_min) == 0) { // inlier
-
-                
-                ushort test = depth_frame.at<ushort>(p);
-                double Z = (double)test / (double)settings_->depth_factor_;
-                double Y = (p.y - settings_->cy) * Z / settings_->fy;
-                double X = (p.x - settings_->cx) * Z / settings_->fx;
+              // inlier
+              if (tophat_error(e_min) == 0) {
 
                 if (test != 0) {
-                  Eigen::Vector3d tmp_in(X, Y, Z);
-
+                  // add to kabsch matrices
                   hypotheses.at(i).input.conservativeResize(3, hypotheses.at(i).input.cols() + 1);
-                  hypotheses.at(i).input.col(hypotheses.at(i).input.cols() - 1) = tmp_in;
+                  hypotheses.at(i).input.col(hypotheses.at(i).input.cols() - 1) = best_camera_p;
 
                   hypotheses.at(i).output.conservativeResize(3, hypotheses.at(i).output.cols() + 1);
-                  hypotheses.at(i).output.col(hypotheses.at(i).output.cols() - 1) = best;
+                  hypotheses.at(i).output.col(hypotheses.at(i).output.cols() - 1) = best_mode;
                 }
               }
-              auto deal = hypotheses.at(i).output;
             }
           }
 
@@ -355,10 +357,10 @@ namespace ISUE {
 
           // refine hypotheses (kabsch)
           for (int i = 0; i < K; ++i) {
-            //std::cout << "output\n";
-            //std::cout << hypotheses.at(i).output << std::endl;
             //std::cout << "input\n";
             //std::cout << hypotheses.at(i).input << std::endl;
+            //std::cout << "output\n";
+            //std::cout << hypotheses.at(i).output << std::endl;
 
             //std::cout << "before\n";
             //std::cout << hyp.pose.linear() << std::endl;

@@ -9,7 +9,7 @@ using namespace ISUE::RelocForests;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cout << "Usage: ./relocforests <path_to_association_file>";
+    cout << "Usage: [train||test] ./relocforests <path_to_association_file>";
     return 1;
   }
 
@@ -32,43 +32,67 @@ int main(int argc, char *argv[]) {
   settings->cx = 319.5f;
   settings->cy = 239.5f;
 
-  // Create forest
-  Forest *forest = new Forest(data, settings, "forest.rf");
+  Forest *forest = nullptr;
 
-  bool check = forest->IsValid();
-  // train forest
-  //forest->Train();
-  //forest->Serialize("forest.rf");
-  auto hypotheses = forest->Test(data->GetRGBImage(54), data->GetDepthImage(54));
-  
+  bool train = false;
+  if (train) {
+    forest = new Forest(data, settings);
+    forest->Train();
+    forest->Serialize("forest.rf");
 
-  auto known_pose = data->poses_eigen_.at(54);
+    cout << "Is forest valid:" << forest->IsValid() << endl;
+  }
+  else {
 
-  for (auto h : hypotheses) {
-    auto pose = h.pose;
+    // load forest
+    forest = new Forest(data, settings, "forest.rf");
 
-    auto rot = pose.rotation();
-    auto lin = pose.linear();
-    auto trans = pose.translation();
+    cout << "Is forest valid:" << forest->IsValid() << endl;
 
-    cout << "found pose" << endl;
-    cout << rot << endl << endl;
-    cout << lin << endl;
-    cout << trans << endl;
+    // eval forest at frame
+    std::clock_t start;
+          double duration;
+          start = std::clock();
 
-    cout << "known pose" << endl;
-    cout << known_pose.first << endl;
-    cout << known_pose.second << endl;
-    if ((known_pose.first - pose.linear()).cwiseAbs().maxCoeff() > 1e-13 ||
-      (known_pose.second - pose.translation()).cwiseAbs().maxCoeff() > 1e-13)
-      cout << "Pose could not be found\n";
-    else
-      cout << "Pose was found!\n";
+    auto hypotheses = forest->Test(data->GetRGBImage(200), data->GetDepthImage(200));
+
+          duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
+          cout << "Train time: " << duration << " Seconds \n";
+
+    // compare pose to known value 
+    auto known_pose = data->poses_eigen_.at(200);
+
+    for (auto h : hypotheses) {
+      auto pose = h.pose;
+
+      auto rot = pose.rotation();
+      auto lin = pose.linear();
+      auto trans = pose.translation();
+
+
+      cout << rot.eulerAngles(0,1,2) * 180 / M_PI << endl;
+
+      cout << "found pose" << endl;
+      cout <<  rot << endl << endl;
+      cout << lin << endl;
+      cout << trans << endl;
+
+      cout << "known pose" << endl;
+      cout << known_pose.first.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
+      cout << known_pose.first << endl;
+      cout << known_pose.second << endl;
+      if ((known_pose.first - pose.rotation()).cwiseAbs().maxCoeff() > 1e-13 ||
+        (known_pose.second - pose.translation()).cwiseAbs().maxCoeff() > 1e-13)
+        cout << "Pose could not be found\n";
+      else
+        cout << "Pose was found!\n";
+      while (true) {};
+    }
   }
 
-  // test forest with random data
 
-  cout << "Done Training.\n";
+
+  cout << "Done.\n";
 
   delete forest;
   delete reader;
