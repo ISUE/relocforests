@@ -62,12 +62,12 @@ int main(int argc, char *argv[]) {
     // compare pose to known value 
     auto known_pose = data->poses_eigen_.at(200);
 
-    cout << "found pose" << endl;
+    cout << "found pose:" << endl;
     cout << pose.rotation() << endl << endl;
     cout << pose.rotation().eulerAngles(0, 1, 2) * 180 / M_PI << endl;
     cout << pose.translation() << endl;
 
-    cout << "known pose" << endl;
+    cout << "known pose:" << endl;
     cout << known_pose.first << endl;
     cout << known_pose.first.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
     cout << known_pose.second << endl;
@@ -77,7 +77,6 @@ int main(int argc, char *argv[]) {
       cout << "Pose could not be found\n";
     else
       cout << "Pose was found!\n";
-    while (true) {};
   }
 
   cout << "Done.\n";

@@ -372,7 +372,7 @@ namespace ISUE {
           }
         }
         // return best pose and energy        
-        return hypotheses.front.front.pose;
+        return hypotheses.front().pose;
       }
 
     private:
