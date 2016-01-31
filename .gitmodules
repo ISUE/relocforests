@@ -1,0 +1,3 @@
+[submodule "libs/RendAR"]
+	path = libs/RendAR
+	url = git@github.com:connerbrooks/RendAR.git

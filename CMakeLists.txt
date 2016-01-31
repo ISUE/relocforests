@@ -10,9 +10,12 @@ else()
 endif()
 
 find_package(OpenCV REQUIRED)
+add_subdirectory(libs/RendAR)
 
-include_directories(include/)
-include_directories("$ENV{EIGEN_DIR}") # set EIGEN_DIR env variable
+include_directories(include/ 
+					"$ENV{EIGEN_DIR}" 
+					${RendAR_INCLUDE_DIRS}) # set EIGEN_DIR env variable
+
 
 file(GLOB PROJECT_HEADERS	include/*.hpp)
 file(GLOB PROJECT_SOURCES	source/*.cpp)
@@ -23,8 +26,8 @@ source_group("Sources" FILES ${PROJECT_SOURCES})
 add_library(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
 
-
 if(BUILD_EXAMPLE)
 	add_executable(${PROJECT_NAME}_example source/main.cpp)
 	target_link_libraries(${PROJECT_NAME}_example ${PROJECT_NAME} ${OpenCV_LIBS})
 endif(BUILD_EXAMPLE)
+

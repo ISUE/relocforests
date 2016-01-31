@@ -274,7 +274,7 @@ namespace ISUE {
       // Get pose hypothesis from depth and rgb frame
       Eigen::Affine3d Test(cv::Mat rgb_frame, cv::Mat depth_frame)
       {
-        int K_init = 1024;
+        int K_init = 512;
         int K = K_init;
 
         std::vector<Hypothesis> hypotheses = CreateHypotheses(K_init, rgb_frame, depth_frame);
