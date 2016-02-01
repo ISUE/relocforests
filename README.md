@@ -46,10 +46,11 @@ year         = {2013},
 
 ```
 @software{brooks16,
-author = {Conner Brooks},
-title = {C++ Implementation of SCORE Forests for Camera Relocalization},
-howpublished = {\url{https://github.com/isue/relocforests}},
-year = {2016}
+author        = {Conner Brooks},
+title         = {C++ Implementation of SCORE Forests for Camera Relocalization},
+howpublished  = {\url{https://github.com/isue/relocforests}},
+year          = {2016}
+}
 ```
 
 This implementation uses a modified version of [MeanShift++](https://github.com/mattnedrich/MeanShift_cpp), as well as an [implementation of the Kabsch algorithm](https://github.com/oleg-alexandrov/projects/blob/master/eigen/Kabsch.cpp).
