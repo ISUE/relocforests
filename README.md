@@ -45,6 +45,17 @@ year         = {2013},
 ```
 
 ```
+@InProceedings{ sturm12iros,
+	author = {J. Sturm and N. Engelhard and F. Endres and W. Burgard and D. Cremers},
+	title = "A Benchmark for the Evaluation of RGB-D SLAM Systems",
+	booktitle = "Proc. of the International Conference on Intelligent Robot Systems (IROS)",
+	year = "2012",
+	month= "Oct.",
+        keywords="rgb-d,rgb-d benchmark,sturmselection",
+}
+```
+
+```
 @software{brooks16,
 author        = {Conner Brooks},
 title         = {C++ Implementation of SCORE Forests for Camera Relocalization},

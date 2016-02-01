@@ -9,6 +9,7 @@
 #include "engine.hpp"
 #include "camera.hpp"
 #include "cube.hpp"
+#include "pyramid.hpp"
 #include "light.hpp"
 #include "model.hpp"
 #include "first_person_camera.hpp"
@@ -20,7 +21,6 @@ using namespace RendAR;
 using namespace glm;
 
 
-
 // control callbacks
 void do_movement();
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mode);
@@ -30,9 +30,9 @@ Forest *forest;
 Data *data;
 
 Camera* camera;
+Pyramid* known_pose;
+Pyramid* forest_pose;
 Light* light;
-Cube* cube;
-Cube* known;
 
 GLfloat lastX = 400, lastY = 400;
 bool keys[1024];
@@ -48,27 +48,25 @@ void updateLoop()
   lastFrame = currentFrame;
   do_movement();
 
-
+  // show pose comparison
   if (frame_num < data->rgb_images_.size()) {
     Eigen::Affine3d pose = forest->Test(data->GetRGBImage(frame_num), data->GetDepthImage(frame_num));
 
     Quaternion<double> q(pose.rotation());
-    cube->setPosition(vec3(pose.translation().x(), pose.translation().y(), pose.translation().z()));
-    cube->setRotation(quat(q.x(), q.y(), q.z(), q.w()));
-    auto known_pose = data->poses_eigen_.at(frame_num);
-    Quaternion<double> qk(known_pose.first);
-    known->setPosition(vec3(known_pose.second.x(), known_pose.second.y(), known_pose.second.z()));
-    known->setRotation(quat(qk.x(), qk.y(), qk.z(), qk.w()));
+    forest_pose->setPosition(vec3(pose.translation().x(), pose.translation().y(), pose.translation().z()));
+    forest_pose->setRotation(quat(q.x(), q.y(), q.z(), q.w()));
+    auto data_pose = data->poses_eigen_.at(frame_num);
+    Quaternion<double> qk(data_pose.first);
+    known_pose->setPosition(vec3(data_pose.second.x(), data_pose.second.y(), data_pose.second.z()));
+    known_pose->setRotation(quat(qk.x(), qk.y(), qk.z(), qk.w()));
     frame_num++;
   }
-
-
 }
 
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cout << "Usage: [train||test] ./relocforests <path_to_association_file>";
+    cout << "Usage: ./relocforests <path_to_association_file> (train|test) <forest_file_name>\n";
     return 1;
   }
 
@@ -80,6 +78,10 @@ int main(int argc, char *argv[]) {
   if (err) {
     return 1;
   }
+
+  // train or test time
+  string time(argv[2]);
+  bool train = (time == "train");
 
   // Get data from reader
   data = reader->GetData();
@@ -93,18 +95,25 @@ int main(int argc, char *argv[]) {
 
   forest = nullptr;
 
-  bool train = false;
+  string forest_file_name;
+  if (argv[3])
+    forest_file_name = string(argv[3]);
+  else
+    cout << "Train and Test time requires an output file name.\n";
+
   if (train) {
+    
+
     forest = new Forest(data, settings);
     forest->Train();
-    forest->Serialize("forest.rf");
+    forest->Serialize(forest_file_name);
 
     cout << "Is forest valid:" << forest->IsValid() << endl;
   }
   else {
 
     // load forest
-    forest = new Forest(data, settings, "forest.rf");
+    forest = new Forest(data, settings, forest_file_name);
 
     cout << "Is forest valid:" << forest->IsValid() << endl;
 
@@ -152,19 +161,30 @@ int main(int argc, char *argv[]) {
   camera = new FirstPersonCamera(vec3(0.0f, 3.0f, 1.5f));
   scene->setCamera(camera);
 
+  known_pose = new Pyramid();
+  known_pose->setColor(vec3(0.0f, 0.737f, 0.831f));
+  known_pose->setWireframe(true);
+
+  forest_pose = new Pyramid();
+  forest_pose->setColor(vec3(1.0f, 0.0f, 0.831f));
+  forest_pose->setWireframe(true);
+
+  Cube *floor = new Cube();
+  floor->setColor(vec3(0.3f, 0.3f, 0.35f));
+  floor->setScale(vec3(20.0f, .2f, 20.0f));
+  floor->setPosition(vec3(0, -2.2f, 0));
+  floor->setShader(Shader("Shaders/default.vert", "Shaders/default.frag"));
+
+  //Model *model = new Model("long_hallway.stl");
+
   light = new Light();
-  light->setPosition(vec3(0.0f, 3.0f, 0));
-
-  cube = new Cube();
-  cube->setPosition(vec3(0.0f, 2.5f, -2.5f));
-  cube->setColor(vec3(0.0f, 0.737f, 0.831f));
-
-  known = new Cube();
-  known->setColor(vec3(1.0f, 0.0f, 0.831f));
+  light->setPosition(vec3(0.0f, 2.0f, 0.0f));
 
   scene->add(light);
-  scene->add(cube);
-  scene->add(known);
+  //scene->add(model);
+  scene->add(floor);
+  scene->add(forest_pose);
+  scene->add(known_pose);
 
   Engine::startMainLoop(&updateLoop);
 
@@ -174,8 +194,9 @@ int main(int argc, char *argv[]) {
   delete settings;
 
   // cleanup rendar
-  delete light;
-  delete cube;
+  delete known_pose;
+  delete forest_pose;
+
 
   return 0;
 }
