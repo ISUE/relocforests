@@ -5,9 +5,13 @@
 #include "settings.hpp"
 #include "data.hpp"
 #include "MeanShift.hpp"
+#include <Eigen/Geometry>
+#include <Eigen/StdVector>
 
 #include <vector>
 #include <cstdint>
+#include <ctime>
+#include <queue>
 
 #include <unordered_map>
 
@@ -41,29 +45,105 @@ namespace ISUE {
     public:
       Tree()
       {
-        root = new Node();
+        root_ = new Node();
+        root_->depth_ = 0;
       };
 
       ~Tree()
       {
-        delete root;
+        delete root_;
       };
 
+      void WriteTree(std::ostream& o, Node *node) const
+      {
+        if (node == nullptr) {
+          o.write("#", sizeof('#'));
+          return;
+        }
+        node->Serialize(o);
+        WriteTree(o, node->left_);
+        WriteTree(o, node->right_);
+      }
+
+      void Serialize(std::ostream& stream) const
+      {
+        const int majorVersion = 0, minorVersion = 0;
+        
+        stream.write(binaryFileHeader_, strlen(binaryFileHeader_));
+        stream.write((const char*)(&majorVersion), sizeof(majorVersion));
+        stream.write((const char*)(&minorVersion), sizeof(minorVersion));
+
+        //stream.write((const char*)(&settings_->max_tree_depth_), sizeof(settings_->max_tree_depth_));
+
+        WriteTree(stream, root_);
+      }
+
+      Node* ReadTree(std::istream& i)
+      {
+        int flag = i.peek();
+        char val = (char)flag;
+        if (val == '#') {
+          i.get();
+          return nullptr;
+        }
+        Node *tmp = new Node();
+        tmp->Deserialize(i);
+        tmp->left_ = ReadTree(i);
+        tmp->right_ = ReadTree(i);
+        return tmp;
+      }
+
+      Tree* Deserialize(std::istream& stream)
+      {
+        settings_ = new Settings();
+
+        std::vector<char> buffer(strlen(binaryFileHeader_) + 1);
+        stream.read(&buffer[0], strlen(binaryFileHeader_));
+        buffer[buffer.size() - 1] = '\0';
+        if (strcmp(&buffer[0], binaryFileHeader_) != 0)
+          throw std::runtime_error("Unsupported forest format.");
+
+        const int majorVersion = 0, minorVersion = 0;
+        stream.read((char*)(&majorVersion), sizeof(majorVersion));
+        stream.read((char*)(&minorVersion), sizeof(minorVersion));
+
+
+        root_ = ReadTree(stream);
+
+      }
+
+      bool IsValidRecurse(Node *node, bool prevSplit)
+      {
+
+        if (!node && prevSplit)
+          return false;
+
+        if (node->is_leaf_)
+          return true;
+
+        return IsValidRecurse(node->left_, node->is_split_) && IsValidRecurse(node->right_, node->is_split_);
+      }
+
+      bool IsValid()
+      {
+        return IsValidRecurse(root_, true);
+      }
 
       // learner output
-      enum OUT { LEFT, RIGHT, TRASH };
+      enum DECISION { LEFT, RIGHT, TRASH };
 
       //  Evaluates weak learner. Decides whether the point should go left or right.
-      //  Returns OUT enum value.
-      OUT eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
+      //  Returns DECISION enum value.
+      //DECISION eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
+      DECISION eval_learner(DepthAdaptiveRGB feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
       {
-        auto response = feature->GetResponse(data, pixel);
+        bool valid = true;
+        float response = feature.GetResponse(depth_image, rgb_image, pos, valid);
 
-        bool is_valid_point = response.second;
-        if (!is_valid_point) // no depth or out of bounds
-          return OUT::TRASH;
+        if (!valid) // no depth or out of bounds
+          return DECISION::TRASH;
 
-        return (OUT)(response.first >= feature->GetThreshold());
+        return (DECISION)(response >= feature.GetThreshold());
       }
 
       // V(S)
@@ -94,95 +174,91 @@ namespace ISUE {
       double objective_function(std::vector<LabeledPixel> data, std::vector<LabeledPixel> left, std::vector<LabeledPixel> right)
       {
         double var = variance(data);
-        double sum;
+        double left_val = ((double)left.size() / (double)data.size()) * variance(left);
+        double right_val = ((double)right.size() / (double)data.size()) * variance(right);
 
-        // left
-        double left_var = variance(left);
-        double left_val = ((double)left.size() / (double)data.size()) * left_var;
-        // right
-        double right_var = variance(right);
-        double right_val = ((double)right.size() / (double)data.size()) * right_var;
-
-        sum = left_val + right_val;
-        return var - sum;
+        return var - (left_val + right_val);
       }
 
       // Returns height from current node to root node.
+      /*
       uint32_t traverse_to_root(Node *node) {
         if (node == nullptr)
           return 0;
         return 1 + traverse_to_root(node->parent_);
       }
+      */
+
+      Eigen::Vector3d GetLeafMode(std::vector<LabeledPixel> S)
+      {
+        std::vector<Eigen::Vector3d> data;
+
+        // calc mode for leaf, sub-sample N_SS = 500
+        for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
+          auto p = S.at(i);
+          Eigen::Vector3d point{ p.label_.x, p.label_.y, p.label_.z };
+          data.push_back(point);
+        }
+
+        // cluster
+        MeanShift ms = MeanShift(nullptr);
+        double kernel_bandwidth = 0.01f; // gaussian
+        std::vector<Eigen::Vector3d> cluster = ms.cluster(data, kernel_bandwidth);
+
+        // find mode
+        std::vector<Point3D> clustered_points;
+        for (auto c : cluster)
+          clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
+
+        Point3DMap cluster_map;
+
+        for (auto p : clustered_points)
+          cluster_map[p]++;
+
+        std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
+
+        for (auto p : cluster_map)
+          if (p.second > mode.second)
+            mode = p;
+
+
+        return Eigen::Vector3d(mode.first.x, mode.first.y, mode.first.z);
+
+      }
 
 
       void train_recurse(Node *node, std::vector<LabeledPixel> S) 
       {
-        uint16_t height = traverse_to_root(node);
-        if (S.size() == 1 || height >= settings->max_tree_depth_) {
+        uint16_t height = node->depth_;
+        if (S.size() == 1 || ((height == settings_->max_tree_depth_ - 1) && S.size() >= 1)) {
 
-          std::vector<std::vector<double>> data;
-
-          // calc mode for leaf, sub-sample N_SS = 500
-          for (uint16_t i = 0; i < (S.size() < 500 ? S.size() : 500); i++) {
-            auto p = S.at(i);
-            std::vector<double> point { p.label_.x, p.label_.y, p.label_.z };
-            data.push_back(point);
-          }
-
-          // cluster
-          MeanShift *ms = new MeanShift(nullptr);
-          double kernel_bandwidth = 0.01f; // gaussian
-          std::vector<std::vector<double>> cluster = ms->cluster(data, kernel_bandwidth);
-
-          // find mode
-          std::vector<Point3D> clustered_points;
-          for (auto c : cluster)
-            clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
-
-          Point3DMap cluster_map;
-          std::pair<Point3D, uint32_t> mode(Point3D(0.0, 0.0, 0.0), 0);
-
-          for (auto p : clustered_points)
-            cluster_map[p]++;
-
-          for (auto h : cluster_map)
-            if (h.second > mode.second)
-              mode = h;
-
+          node->mode_ = GetLeafMode(S);
           node->is_leaf_ = true;
-          node->mode_ = cv::Point3d(mode.first.x, mode.first.y, mode.first.z);
-
+          node->left_ = nullptr;
+          node->right_ = nullptr;
           return;
         }
-        else if (S.size() == 0) {
-          delete node;
-          node = nullptr;
-          return;
-        }
-
-        node->is_split_ = true;
-        node->is_leaf_ = false;
 
         uint32_t num_candidates = 5,
                 feature = 0;
         double minimum_objective = DBL_MAX;
 
-        std::vector<DepthAdaptiveRGB*> candidate_params;
+        std::vector<DepthAdaptiveRGB> candidate_params;
         std::vector<LabeledPixel> left_final, right_final;
 
 
         for (uint32_t i = 0; i < num_candidates; ++i) {
 
           // add candidate
-          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random, settings->image_width_, settings->image_height_));
+          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random_));
 
           // partition data with candidate
           std::vector<LabeledPixel> left_data, right_data;
 
           for (uint32_t j = 0; j < S.size(); ++j) {
-            // todo throw away undefined vals
 
-            OUT val = eval_learner(data, S.at(j), candidate_params.at(i));
+            LabeledPixel p = S.at(j);
+            DECISION val = eval_learner(candidate_params.at(i), data_->GetDepthImage(p.frame_), data_->GetRGBImage(p.frame_), p.pos_);
 
             switch (val) {
             case LEFT:
@@ -210,11 +286,30 @@ namespace ISUE {
           }
         }
 
+        // split went only one way
+        if (left_final.empty()) {
+          node->mode_ = GetLeafMode(right_final);
+          node->is_leaf_ = true;
+          node->left_ = nullptr;
+          node->right_ = nullptr;
+          return;
+        }
+        if (right_final.empty()) {
+          node->mode_ = GetLeafMode(left_final);
+          node->is_leaf_ = true;
+          node->left_ = nullptr;
+          node->right_ = nullptr;
+          return;
+        }
+
         // set feature
+        node->is_split_ = true;
+        node->is_leaf_ = false;
         node->feature_ = candidate_params.at(feature);
         node->left_ = new Node();
         node->right_ = new Node();
-        node->left_->parent_ = node->right_->parent_ = node;
+        node->left_->depth_ = node->right_->depth_ = node->depth_ + 1;
+        //node->left_->parent_ = node->right_->parent_ = node;
 
         train_recurse(node->left_, left_final);
         train_recurse(node->right_, right_final);
@@ -222,18 +317,47 @@ namespace ISUE {
 
       void Train(Data *data, std::vector<LabeledPixel> labeled_data, Random *random, Settings *settings) 
       {
-        this->data = data;
-        this->random = random;
-        this->settings = settings;
-        train_recurse(this->root, labeled_data);
+        data_ = data;
+        random_ = random;
+        settings_ = settings;
+        train_recurse(root_, labeled_data);
+      }
+
+      Eigen::Vector3d eval_recursive(Node **node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image, bool &valid)
+      {
+        if ((*node)->is_leaf_) {
+          return (*node)->mode_;
+        }
+
+        DECISION val = eval_learner((*node)->feature_, depth_image, rgb_image, cv::Point2i(col, row));
+
+        switch (val) {
+        case LEFT:
+          return eval_recursive(&(*node)->left_, row, col, rgb_image, depth_image, valid);
+          break;
+        case RIGHT:
+          return eval_recursive(&(*node)->right_, row, col, rgb_image, depth_image, valid);
+          break;
+        case TRASH:
+          valid = false;
+          break;
+        }
+      }
+
+      // Evaluate tree at a pixel
+      Eigen::Vector3d Eval(int row, int col, cv::Mat rgb_image, cv::Mat depth_image, bool &valid)
+      {
+        auto m = eval_recursive(&root_, row, col, rgb_image, depth_image, valid);
+        return m;
       }
 
 
     private:
-      Node *root;
-      Data *data;
-      Random *random;
-      Settings *settings;
+      Node *root_;
+      Data *data_;
+      Random *random_;
+      Settings *settings_;
+      const char* binaryFileHeader_ = "ISUE.RelocForests.Tree";
     };
   }
 }
