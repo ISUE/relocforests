@@ -41,16 +41,7 @@ publisher    = {IEEE},
 title        = {Scene Coordinate Regression Forests for Camera Relocalization in RGB-D Images},
 url          = {http://research.microsoft.com/apps/pubs/default.aspx?id=184826},
 year         = {2013},
-} {export:184826,
-author       = {Jamie Shotton and Ben Glocker and Christopher Zach and Shahram Izadi and Antonio
-                Criminisi and Andrew Fitzgibbon},
-booktitle    = {Proc. Computer Vision and Pattern Recognition (CVPR)},
-month        = {June},
-publisher    = {IEEE},
-title        = {Scene Coordinate Regression Forests for Camera Relocalization in RGB-D Images},
-url          = {http://research.microsoft.com/apps/pubs/default.aspx?id=184826},
-year         = {2013},
-}
+} 
 ```
 
 ```
