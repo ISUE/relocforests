@@ -134,7 +134,6 @@ namespace ISUE {
 
       //  Evaluates weak learner. Decides whether the point should go left or right.
       //  Returns DECISION enum value.
-      //DECISION eval_learner(Data *data, LabeledPixel pixel, DepthAdaptiveRGB *feature) 
       DECISION eval_learner(DepthAdaptiveRGB feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
       {
         bool valid = true;
@@ -180,15 +179,6 @@ namespace ISUE {
         return var - (left_val + right_val);
       }
 
-      // Returns height from current node to root node.
-      /*
-      uint32_t traverse_to_root(Node *node) {
-        if (node == nullptr)
-          return 0;
-        return 1 + traverse_to_root(node->parent_);
-      }
-      */
-
       Eigen::Vector3d GetLeafMode(std::vector<LabeledPixel> S)
       {
         std::vector<Eigen::Vector3d> data;
@@ -208,7 +198,9 @@ namespace ISUE {
         // find mode
         std::vector<Point3D> clustered_points;
         for (auto c : cluster)
-          clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000, floor(c[1] * 10000) / 10000, floor(c[2] * 10000) / 10000));
+          clustered_points.push_back(Point3D(floor(c[0] * 10000) / 10000,
+                                             floor(c[1] * 10000) / 10000,
+                                             floor(c[2] * 10000) / 10000));
 
         Point3DMap cluster_map;
 
@@ -221,9 +213,7 @@ namespace ISUE {
           if (p.second > mode.second)
             mode = p;
 
-
         return Eigen::Vector3d(mode.first.x, mode.first.y, mode.first.z);
-
       }
 
 
@@ -280,7 +270,7 @@ namespace ISUE {
 
           if (objective < minimum_objective) {
             feature = i;
-            minimum_objective= objective;
+            minimum_objective = objective;
             left_final = left_data;
             right_final = right_data;
           }
@@ -309,7 +299,6 @@ namespace ISUE {
         node->left_ = new Node();
         node->right_ = new Node();
         node->left_->depth_ = node->right_->depth_ = node->depth_ + 1;
-        //node->left_->parent_ = node->right_->parent_ = node;
 
         train_recurse(node->left_, left_final);
         train_recurse(node->right_, right_final);

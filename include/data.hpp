@@ -1,7 +1,7 @@
 #pragma once
-#include "camerautils.hpp"
 
-#include "opencv2/opencv.hpp"
+#include <opencv2/opencv.hpp>
+#include <Eigen/Geometry>
 
 #include <vector>
 #include <map>
@@ -51,13 +51,11 @@ namespace ISUE {
 
       std::vector<std::string> depth_names_;
       std::vector<std::string> rgb_names_;
-      std::vector<CameraInfo> poses_;
       std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d>> poses_eigen_;
 
       // loaded images
       std::map<uint32_t, cv::Mat> rgb_images_;
       std::map<uint32_t, cv::Mat> depth_images_;
-
     };
   }
 }

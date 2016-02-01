@@ -21,7 +21,6 @@ namespace ISUE {
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
       Node()
       {
-        //parent_ = nullptr;
         left_ = nullptr;
         right_ = nullptr;
       };

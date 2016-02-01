@@ -88,7 +88,6 @@ namespace ISUE {
         stream.read((char*)(&majorVersion), sizeof(majorVersion));
         stream.read((char*)(&minorVersion), sizeof(minorVersion));
 
-
         int treeCount = 0;
         stream.read((char*)(&treeCount), sizeof(treeCount));
 
@@ -132,20 +131,9 @@ namespace ISUE {
               float Y = (row - settings_->cy) * Z / settings_->fy;
               float X = (col - settings_->cx) * Z / settings_->fx;
 
-              //cv::Point3f label(X, Y, Z);
               Eigen::Vector3d p_camera(X, Y, Z);
-
               Eigen::Vector3d label_e = data_->poses_eigen_.at(curr_frame).first * p_camera + data_->poses_eigen_.at(curr_frame).second;
-
-              // convert label to world coordinates
-              //CameraInfo pose = data_->poses_.at(curr_frame);
-              //cv::Mat R = pose.getRotation();
-              //cv::Mat T = pose.getTranslation();
-
-              //cv::Mat P(label, true);
-              //P.convertTo(P, CV_64FC2); // fix exception when doing operations with R, T
-              //cv::Mat C = R * P + T;
-              //label = cv::Point3f(C);
+              
               cv::Point3f label(label_e.x(), label_e.y(), label_e.z());
 
               // store labeled pixel
