@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.0)
 project(relocforests)
 
+option(BUILD_EXAMPLE "Build example application" OFF)
+
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
 else()
@@ -18,6 +20,11 @@ file(GLOB PROJECT_SOURCES	source/*.cpp)
 source_group("Headers" FILES ${PROJECT_HEADERS})
 source_group("Sources" FILES ${PROJECT_SOURCES})
 
-add_executable(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS})# ${OpenCV_LIBS})
-
+add_library(${PROJECT_NAME} ${PROJECT_SOURCES} ${PROJECT_HEADERS})
 target_link_libraries(${PROJECT_NAME} ${OpenCV_LIBS})
+
+
+if(BUILD_EXAMPLE)
+	add_executable(${PROJECT_NAME}_example source/main.cpp)
+	target_link_libraries(${PROJECT_NAME}_example ${PROJECT_NAME} ${OpenCV_LIBS})
+endif(BUILD_EXAMPLE)
