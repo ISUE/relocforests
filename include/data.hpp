@@ -1,7 +1,7 @@
 #pragma once
 
-#include <opencv2/opencv.hpp>
 #include <Eigen/Geometry>
+#include <opencv2/opencv.hpp>
 
 #include <vector>
 #include <map>
@@ -19,9 +19,19 @@ namespace ISUE {
       cv::Point3f label_;
     };
 
+    typedef std::pair<Eigen::Matrix3d, Eigen::Vector3d> EigenPose;
+
     class Data {
     public:
-      Data() {};
+      Data() 
+      {
+        currFrame = 0;
+      };
+
+      Data(std::string data_path)
+      {
+        this->Deserialize(data_path);
+      }
 
       cv::Mat GetRGBImage(uint32_t frame)
       {
@@ -47,15 +57,34 @@ namespace ISUE {
         }
       }
 
+      void AddFrame(cv::Mat rgb_frame, cv::Mat depth_frame, EigenPose pose)
+      {
+        rgb_images_.insert(std::pair<uint32_t, cv::Mat>(currFrame, rgb_frame));
+        depth_images_.insert(std::pair<uint32_t, cv::Mat>(currFrame, depth_frame));
+        poses_eigen_.push_back(pose);
+      }
+
+      void Serialize(std::string data_path)
+      {
+        // todo
+      }
+
+      void Deserialize(std::string data_path)
+      {
+        // todo
+      }
+
+      int currFrame;
+
       std::string path_to_assoc_file_;
 
       std::vector<std::string> depth_names_;
       std::vector<std::string> rgb_names_;
-      std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d>> poses_eigen_;
 
       // loaded images
       std::map<uint32_t, cv::Mat> rgb_images_;
       std::map<uint32_t, cv::Mat> depth_images_;
+      std::vector<std::pair<Eigen::Matrix3d, Eigen::Vector3d>> poses_eigen_;
     };
   }
 }

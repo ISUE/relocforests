@@ -6,9 +6,9 @@
 #define EPSILON 0.0001
 
 
-double euclidean_distance(const Vector3d &point_a, const Vector3d &point_b){
+double euclidean_distance(const Eigen::Vector3d &point_a, const Eigen::Vector3d &point_b){
     double total = 0;
-    Vector3d tmp = point_a - point_b;
+    Eigen::Vector3d tmp = point_a - point_b;
 
     /*
     for(int i=0; i<point_a.size(); i++){
@@ -31,14 +31,14 @@ void MeanShift::set_kernel( double (*_kernel_func)(double,double) ) {
  //   }
 }
 
- Vector3d MeanShift::shift_point(const Vector3d &point, const vector<Vector3d> &points, double kernel_bandwidth) {
-    Vector3d shifted_point = point;
+ Eigen::Vector3d MeanShift::shift_point(const Eigen::Vector3d &point, const vector<Eigen::Vector3d> &points, double kernel_bandwidth) {
+    Eigen::Vector3d shifted_point = point;
     for(int dim = 0; dim<shifted_point.size(); dim++){
         shifted_point[dim] = 0;
     }
     double total_weight = 0;
     for(int i=0; i<points.size(); i++){
-        Vector3d temp_point = points[i];
+        Eigen::Vector3d temp_point = points[i];
         double distance = euclidean_distance(point, temp_point);
         double weight = kernel_func(distance, kernel_bandwidth);
         for(int j=0; j<shifted_point.size(); j++){
@@ -53,16 +53,16 @@ void MeanShift::set_kernel( double (*_kernel_func)(double,double) ) {
     return shifted_point;
 }
 
-vector<Vector3d> MeanShift::cluster(vector<Vector3d> points, double kernel_bandwidth){
+vector<Eigen::Vector3d> MeanShift::cluster(vector<Eigen::Vector3d> points, double kernel_bandwidth){
     vector<bool> stop_moving(points.size(), false);
     stop_moving.reserve(points.size());
-    vector<Vector3d> shifted_points = points;
+    vector<Eigen::Vector3d> shifted_points = points;
     double max_shift_distance;
     do {
         max_shift_distance = 0;
         for(int i=0; i<shifted_points.size(); i++){
             if (!stop_moving[i]) {
-                Vector3d point_new = shift_point(shifted_points[i], points, kernel_bandwidth);
+                Eigen::Vector3d point_new = shift_point(shifted_points[i], points, kernel_bandwidth);
                 double shift_distance = euclidean_distance(point_new, shifted_points[i]);
                 if(shift_distance > max_shift_distance){
                     max_shift_distance = shift_distance;
