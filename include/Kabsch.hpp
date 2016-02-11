@@ -1,3 +1,4 @@
+#pragma once
 // This code is released in public domain
 
 #include <Eigen/Geometry>
@@ -11,7 +12,7 @@ namespace ISUE
 {
   namespace RelocForests
   {
-    Eigen::Affine3d Find3DAffineTransform(Eigen::Matrix3Xd in, Eigen::Matrix3Xd out) {
+    inline Eigen::Affine3d Find3DAffineTransform(Eigen::Matrix3Xd in, Eigen::Matrix3Xd out) {
 
       // Default output
       Eigen::Affine3d A;
@@ -70,6 +71,7 @@ namespace ISUE
 
     // A function to test Find3DAffineTransform()
 
+    /*
     void TestFind3DAffineTransform(){
 
       // Create datasets with known transform
@@ -95,5 +97,6 @@ namespace ISUE
         (S - A.translation()).cwiseAbs().maxCoeff() > 1e-13)
         throw "Could not determine the affine transform accurately enough";
     }
+    */
   }
 }

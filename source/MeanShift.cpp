@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <math.h>
-#include "MeanShift.hpp"
+#include "../include/MeanShift.hpp"
+
 
 //#define EPSILON 0.0000001
 #define EPSILON 0.0001

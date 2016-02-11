@@ -1,3 +1,4 @@
+#pragma once
 /*
  * MeanShift implementation created by Matt Nedrich.
  * project: https://github.com/mattnedrich/MeanShift_cpp
