@@ -137,7 +137,7 @@ namespace ISUE {
       DECISION eval_learner(DepthAdaptiveRGB feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
       {
         bool valid = true;
-        float response = feature.GetResponse(depth_image, rgb_image, pos, valid);
+        float response = feature.GetResponse(depth_image, rgb_image, pos, *settings_, valid);
 
         if (!valid) // no depth or out of bounds
           return DECISION::TRASH;

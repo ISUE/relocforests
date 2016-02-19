@@ -62,6 +62,7 @@ namespace ISUE {
         rgb_images_.insert(std::pair<uint32_t, cv::Mat>(currFrame, rgb_frame));
         depth_images_.insert(std::pair<uint32_t, cv::Mat>(currFrame, depth_frame));
         poses_eigen_.push_back(pose);
+        currFrame++;
       }
 
       void Serialize(std::string data_path)

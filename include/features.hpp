@@ -19,7 +19,7 @@ namespace ISUE {
       Feature(cv::Point2i offset_1, cv::Point2i offset_2)
         : offset_1_(offset_1), offset_2_(offset_2) {};
 
-        virtual float GetResponse(cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos, bool &valid) = 0;
+        virtual float GetResponse(cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos, Settings &settings, bool &valid) = 0;
 
     protected:
       cv::Point2i offset_1_;
@@ -79,7 +79,7 @@ namespace ISUE {
         return DepthAdaptiveRGB(offset_1, offset_2, color_channel_1, color_channel_2, tau_);
       }
 
-      virtual float GetResponse(cv::Mat depth_img, cv::Mat rgb_img, cv::Point2i pos, bool &valid) override
+      virtual float GetResponse(cv::Mat depth_img, cv::Mat rgb_img, cv::Point2i pos, Settings &settings, bool &valid) override
       {
 
         ushort depth_at_pos = depth_img.at<ushort>(pos);
@@ -90,7 +90,7 @@ namespace ISUE {
           return 0.0;
         }
         else {
-          depth /= 5000.0; // scale value
+          depth /= settings.depth_factor_; // scale value
         }
 
         // depth invariance
@@ -100,13 +100,15 @@ namespace ISUE {
         cv::Point2i pos1 = pos + depth_inv_1;
         cv::Point2i pos2 = pos + depth_inv_2;
 
+        int width = settings.image_width_;
+        int height = settings.image_width_;
         // check bounds
-        if (pos1.x >= 640.0 || pos1.y >= 480.0 ||
+        if (pos1.x >= width || pos1.y >= height ||
             pos1.x < 0.0    || pos1.y < 0.0 ) {
           valid = false;
           return 0.0f;
         }
-        if (pos2.x >= 640.0 || pos2.y >= 480.0 ||
+        if (pos2.x >= width || pos2.y >= height ||
             pos2.x < 0.0    || pos2.y < 0.0) {
           valid = false;
           return 0.0f;
