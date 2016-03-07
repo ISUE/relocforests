@@ -7,7 +7,6 @@
 namespace ISUE {
   namespace RelocForests {
 
-
     class Feature {
     public:
       Feature()
@@ -101,7 +100,7 @@ namespace ISUE {
         cv::Point2i pos2 = pos + depth_inv_2;
 
         int width = settings.image_width_;
-        int height = settings.image_width_;
+        int height = settings.image_height_;
         // check bounds
         if (pos1.x >= width || pos1.y >= height ||
             pos1.x < 0.0    || pos1.y < 0.0 ) {
