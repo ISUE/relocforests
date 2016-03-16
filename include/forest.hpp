@@ -21,13 +21,15 @@
 
 namespace ISUE {
   namespace RelocForests {
+    // D depth format, RGB rgb format
+    template<typename D, typename RGB>
     class Forest {
     public:
       Forest(Data *data, Settings *settings) 
         : data_(data), settings_(settings)
       {
         for (int i = 0; i < settings->num_trees_; ++i)
-          forest_.push_back(new Tree());
+          forest_.push_back(new Tree<D, RGB>());
         random_ = new Random();
       };
 
@@ -93,7 +95,7 @@ namespace ISUE {
 
         int i = 0;
         for (i = 0; i < treeCount; ++i) {
-          Tree *t = new Tree();
+          Tree<D, RGB> *t = new Tree<D, RGB>();
           t->Deserialize(stream);
           forest_.push_back(t);
         }
@@ -117,7 +119,7 @@ namespace ISUE {
 
           // randomly choose frames
           for (int i = 0; i < settings_->num_frames_per_tree_; ++i) {
-            int curr_frame = random_->Next(0, data_->depth_names_.size());
+            int curr_frame = random_->Next(0, data_->depth_images_.size());
             // randomly sample pixels per frame
             for (int j = 0; j < settings_->num_pixels_per_frame_; ++j) {
               int row = random_->Next(0, settings_->image_height_);
@@ -127,7 +129,7 @@ namespace ISUE {
               cv::Mat rgb_image = data_->GetRGBImage(curr_frame);
               cv::Mat depth_image = data_->GetDepthImage(curr_frame);
 
-              float Z = (float)depth_image.at<ushort>(row, col) / (float)settings_->depth_factor_;
+              float Z = (float)depth_image.at<D>(row, col) / (float)settings_->depth_factor_;
               float Y = (row - settings_->cy) * Z / settings_->fy;
               float X = (col - settings_->cx) * Z / settings_->fx;
 
@@ -222,11 +224,11 @@ namespace ISUE {
           for (uint16_t j = 0; j < 3; ++j) {
             int col = 0, row = 0;
             double Z = 0.0;
-            ushort test = 0;
+            D test = 0;
             do {
               col = random_->Next(0, settings_->image_width_);
               row = random_->Next(0, settings_->image_height_);
-              test = depth_frame.at<ushort>(row, col);
+              test = depth_frame.at<D>(row, col);
               Z = (double)test / (double)settings_->depth_factor_;
             } while (test == 0);
 
@@ -296,7 +298,7 @@ namespace ISUE {
             // evaluate forest to get modes (union)
             auto modes = Eval(p.y, p.x, rgb_frame, depth_frame);
 
-            ushort test = depth_frame.at<ushort>(p);
+            D test = depth_frame.at<D>(p);
             double Z = (double)test / (double)settings_->depth_factor_;
             double Y = (p.y - settings_->cy) * Z / settings_->fy;
             double X = (p.x - settings_->cx) * Z / settings_->fx;
@@ -366,7 +368,7 @@ namespace ISUE {
     private:
       Data *data_;
       Settings *settings_;
-      std::vector<Tree*> forest_;
+      std::vector<Tree<D, RGB>*> forest_;
       Random *random_;
       const char* binaryFileHeader_ = "ISUE.RelocForests.Forest";
     };

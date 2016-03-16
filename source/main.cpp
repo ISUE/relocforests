@@ -32,11 +32,11 @@ int main(int argc, char *argv[]) {
   settings->cx = 319.5f;
   settings->cy = 239.5f;
 
-  Forest *forest = nullptr;
+  Forest<ushort, cv::Vec3b> *forest = nullptr;
 
   bool train = false;
   if (train) {
-    forest = new Forest(data, settings);
+    forest = new Forest<ushort, cv::Vec3b>(data, settings);
     forest->Train();
     forest->Serialize("forest.rf");
 
@@ -45,7 +45,7 @@ int main(int argc, char *argv[]) {
   else {
 
     // load forest
-    forest = new Forest(data, settings, "forest.rf");
+    forest = new Forest<ushort, cv::Vec3b>(data, settings, "forest.rf");
 
     cout << "Is forest valid:" << forest->IsValid() << endl;
 
