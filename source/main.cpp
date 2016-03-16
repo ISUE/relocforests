@@ -60,7 +60,7 @@ int main(int argc, char *argv[]) {
     cout << "Train time: " << duration << " Seconds \n";
 
     // compare pose to known value 
-    auto known_pose = data->poses_eigen_.at(200);
+    auto known_pose = data->GetPose(200);
 
     cout << "found pose:" << endl;
     cout << pose.rotation() << endl << endl;
@@ -68,12 +68,12 @@ int main(int argc, char *argv[]) {
     cout << pose.translation() << endl;
 
     cout << "known pose:" << endl;
-    cout << known_pose.first << endl;
-    cout << known_pose.first.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
-    cout << known_pose.second << endl;
+    cout << known_pose.rotation << endl;
+    cout << known_pose.rotation.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
+    cout << known_pose.position << endl;
 
-    if ((known_pose.first - pose.rotation()).cwiseAbs().maxCoeff() > 1e-13 ||
-      (known_pose.second - pose.translation()).cwiseAbs().maxCoeff() > 1e-13)
+    if ((known_pose.rotation - pose.rotation()).cwiseAbs().maxCoeff() > 1e-13 ||
+      (known_pose.position - pose.translation()).cwiseAbs().maxCoeff() > 1e-13)
       cout << "Pose could not be found\n";
     else
       cout << "Pose was found!\n";

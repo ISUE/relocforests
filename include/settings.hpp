@@ -5,7 +5,7 @@ namespace ISUE {
   namespace RelocForests {
     class Settings {
     public:
-      // default values
+      // default values for TUM datasets
       Settings() 
         : num_trees_(5), max_tree_depth_(16), 
         num_frames_per_tree_(500), num_pixels_per_frame_(5000),

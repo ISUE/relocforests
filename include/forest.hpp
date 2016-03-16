@@ -119,7 +119,7 @@ namespace ISUE {
 
           // randomly choose frames
           for (int i = 0; i < settings_->num_frames_per_tree_; ++i) {
-            int curr_frame = random_->Next(0, data_->depth_images_.size());
+            int curr_frame = random_->Next(0, data_->GetNumFrames());
             // randomly sample pixels per frame
             for (int j = 0; j < settings_->num_pixels_per_frame_; ++j) {
               int row = random_->Next(0, settings_->image_height_);
@@ -134,7 +134,8 @@ namespace ISUE {
               float X = (col - settings_->cx) * Z / settings_->fx;
 
               Eigen::Vector3d p_camera(X, Y, Z);
-              Eigen::Vector3d label_e = data_->poses_eigen_.at(curr_frame).first * p_camera + data_->poses_eigen_.at(curr_frame).second;
+              Pose pose = data_->GetPose(curr_frame);
+              Eigen::Vector3d label_e = pose.rotation * p_camera + pose.position;
               
               cv::Point3f label(label_e.x(), label_e.y(), label_e.z());
 
@@ -256,15 +257,8 @@ namespace ISUE {
             }
           }
 
-          //TestFind3DAffineTransform();
-
-          //std::cout << h.input << std::endl;
-          //std::cout << h.output << std::endl;
-
           // kabsch algorithm
           Eigen::Affine3d transform = Find3DAffineTransform(h.input, h.output);
-          //std::cout << transform.linear() << std::endl;
-          //std::cout << transform.translation() << std::endl;
           h.pose = transform;
           h.energy = 0;
           hypotheses.push_back(h);
@@ -347,18 +341,7 @@ namespace ISUE {
 
           // refine hypotheses (kabsch)
           for (int i = 0; i < K; ++i) {
-            //std::cout << "input\n";
-            //std::cout << hypotheses.at(i).input << std::endl;
-            //std::cout << "output\n";
-            //std::cout << hypotheses.at(i).output << std::endl;
-
-            //std::cout << "before\n";
-            //std::cout << hyp.pose.linear() << std::endl;
-            //std::cout << hyp.pose.rotation() << std::endl;
             hypotheses.at(i).pose = Find3DAffineTransform(hypotheses.at(i).input, hypotheses.at(i).output);
-            //std::cout << "after\n";
-            //std::cout << hypotheses.at(i).pose.linear() << std::endl;
-            //std::cout << hypotheses.at(i).pose.rotation() << std::endl;
           }
         }
         // return best pose and energy        
