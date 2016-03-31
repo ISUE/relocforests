@@ -9,7 +9,7 @@ using namespace ISUE::RelocForests;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cout << "Usage: [train||test] ./relocforests <path_to_association_file>";
+    cout << "Usage: ./relocforests <path_to_association_file> (train|test) <forest_file_name>\n";
     return 1;
   }
 
@@ -21,24 +21,29 @@ int main(int argc, char *argv[]) {
   if (err) {
     return 1;
   }
+  
+  // train or test time
+  string shouldTrain(argv[2]);
+  bool train = (shouldTrain == "train");
 
   // Get data from reader
   Data *data = reader->GetData();
 
   // settings for forest
-  Settings *settings = new Settings();
-  settings->fx = 525.0f;
-  settings->fy = 525.0f;
-  settings->cx = 319.5f;
-  settings->cy = 239.5f;
+  Settings *settings = new Settings(640, 480, 5000, 525.0f, 525.0f, 319.5f, 239.5f);
 
   Forest<ushort, cv::Vec3b> *forest = nullptr;
+  
+  string forest_file_name;
+  if (argv[3])
+    forest_file_name = string(argv[3]);
+  else
+    cout << "Train and Test time requires an output file name.\n";
 
-  bool train = false;
-  if (train) {
+  if (shouldTrain) {
     forest = new Forest<ushort, cv::Vec3b>(data, settings);
     forest->Train();
-    forest->Serialize("forest.rf");
+    forest->Serialize(forest_file_name);
 
     cout << "Is forest valid:" << forest->IsValid() << endl;
   }
@@ -72,14 +77,7 @@ int main(int argc, char *argv[]) {
     cout << known_pose.rotation.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
     cout << known_pose.position << endl;
 
-    if ((known_pose.rotation - pose.rotation()).cwiseAbs().maxCoeff() > 1e-13 ||
-      (known_pose.position - pose.translation()).cwiseAbs().maxCoeff() > 1e-13)
-      cout << "Pose could not be found\n";
-    else
-      cout << "Pose was found!\n";
   }
-
-  cout << "Done.\n";
 
   delete forest;
   delete reader;
