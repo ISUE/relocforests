@@ -2,11 +2,11 @@
 
 #include "data.hpp"
 #include "random.hpp"
+#include "settings.hpp"
 #include "opencv2/opencv.hpp"
 
 namespace ISUE {
   namespace RelocForests {
-
 
     class Feature {
     public:
@@ -19,7 +19,7 @@ namespace ISUE {
       Feature(cv::Point2i offset_1, cv::Point2i offset_2)
         : offset_1_(offset_1), offset_2_(offset_2) {};
 
-        virtual float GetResponse(cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos, bool &valid) = 0;
+        virtual float GetResponse(cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos, Settings &settings, bool &valid) = 0;
 
     protected:
       cv::Point2i offset_1_;
@@ -29,6 +29,8 @@ namespace ISUE {
     /*
      *   Depth Feature Response Function
      */
+
+    template <typename D, typename RGB>
     class Depth : public Feature {
     public:
       Depth(cv::Point2i offset_1, cv::Point2i offset_2)
@@ -38,15 +40,15 @@ namespace ISUE {
       virtual float GetResponse(cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos, bool &valid)
       {
 
-        uchar depth_at_pos = depth_image.at<ushort>(pos);
+        D depth_at_pos = depth_image.at<D>(pos);
         cv::Point2i depth_inv_1(offset_1_.x / depth_at_pos, offset_2_.y / depth_at_pos);
         cv::Point2i depth_inv_2(offset_2_.x / depth_at_pos, offset_2_.y / depth_at_pos);
 
         if (depth_at_pos == 0)
           valid = false;
 
-        float D_1 = depth_image.at<uchar>(pos + depth_inv_1);
-        float D_2 = depth_image.at<uchar>(pos + depth_inv_2);
+        D D_1 = depth_image.at<D>(pos + depth_inv_1);
+        D D_2 = depth_image.at<D>(pos + depth_inv_2);
 
         return D_1 - D_2;
       }
@@ -56,6 +58,8 @@ namespace ISUE {
     /*
      *   Depth Adaptive RGB Feature Response Function
      */
+
+    template <typename D, typename RGB>
     class DepthAdaptiveRGB : public Feature {
     public:
       DepthAdaptiveRGB()
@@ -79,10 +83,10 @@ namespace ISUE {
         return DepthAdaptiveRGB(offset_1, offset_2, color_channel_1, color_channel_2, tau_);
       }
 
-      virtual float GetResponse(cv::Mat depth_img, cv::Mat rgb_img, cv::Point2i pos, bool &valid) override
+      virtual float GetResponse(cv::Mat depth_img, cv::Mat rgb_img, cv::Point2i pos, Settings &settings, bool &valid) override
       {
 
-        ushort depth_at_pos = depth_img.at<ushort>(pos);
+        D depth_at_pos = depth_img.at<D>(pos);
         float depth = (float)depth_at_pos;
 
         if (depth <= 0) {
@@ -90,7 +94,7 @@ namespace ISUE {
           return 0.0;
         }
         else {
-          depth /= 5000.0; // scale value
+          depth /= settings.depth_factor_; // scale value
         }
 
         // depth invariance
@@ -100,20 +104,22 @@ namespace ISUE {
         cv::Point2i pos1 = pos + depth_inv_1;
         cv::Point2i pos2 = pos + depth_inv_2;
 
+        int width = settings.image_width_;
+        int height = settings.image_height_;
         // check bounds
-        if (pos1.x >= 640.0 || pos1.y >= 480.0 ||
+        if (pos1.x >= width || pos1.y >= height ||
             pos1.x < 0.0    || pos1.y < 0.0 ) {
           valid = false;
           return 0.0f;
         }
-        if (pos2.x >= 640.0 || pos2.y >= 480.0 ||
+        if (pos2.x >= width || pos2.y >= height ||
             pos2.x < 0.0    || pos2.y < 0.0) {
           valid = false;
           return 0.0f;
         }
 
-        float I_1 = rgb_img.at<cv::Vec3b>(pos1)[this->color_channel_1_];
-        float I_2 = rgb_img.at<cv::Vec3b>(pos2)[this->color_channel_2_];
+        float I_1 = rgb_img.at<RGB>(pos1)[this->color_channel_1_];
+        float I_2 = rgb_img.at<RGB>(pos2)[this->color_channel_2_];
 
         return I_1 - I_2;
       }

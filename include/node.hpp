@@ -16,6 +16,7 @@ namespace ISUE {
       o.read((char*)(&t), sizeof(T));
     }
 
+    template <typename D, typename RGB>
     class Node {
     public:
       EIGEN_MAKE_ALIGNED_OPERATOR_NEW
@@ -52,9 +53,9 @@ namespace ISUE {
       bool is_leaf_ = false;
       bool is_split_ = false;
       uint32_t depth_ = 0;
-      Node *left_;
-      Node *right_;
-      DepthAdaptiveRGB feature_;
+      Node<D, RGB> *left_;
+      Node<D, RGB> *right_;
+      DepthAdaptiveRGB<D, RGB> feature_;
       Eigen::Vector3d mode_;
     };
   }

@@ -40,12 +40,12 @@ namespace ISUE {
 
     typedef std::unordered_map<Point3D, uint32_t, hashFunc, equalsFunc> Point3DMap;
 
-
+    template <typename D, typename RGB>
     class Tree {
     public:
       Tree()
       {
-        root_ = new Node();
+        root_ = new Node<D, RGB>();
         root_->depth_ = 0;
       };
 
@@ -54,7 +54,7 @@ namespace ISUE {
         delete root_;
       };
 
-      void WriteTree(std::ostream& o, Node *node) const
+      void WriteTree(std::ostream& o, Node<D, RGB> *node) const
       {
         if (node == nullptr) {
           o.write("#", sizeof('#'));
@@ -78,7 +78,7 @@ namespace ISUE {
         WriteTree(stream, root_);
       }
 
-      Node* ReadTree(std::istream& i)
+      Node<D, RGB>* ReadTree(std::istream& i)
       {
         int flag = i.peek();
         char val = (char)flag;
@@ -86,7 +86,7 @@ namespace ISUE {
           i.get();
           return nullptr;
         }
-        Node *tmp = new Node();
+        Node<D, RGB> *tmp = new Node<D, RGB>();
         tmp->Deserialize(i);
         tmp->left_ = ReadTree(i);
         tmp->right_ = ReadTree(i);
@@ -112,7 +112,7 @@ namespace ISUE {
 
       }
 
-      bool IsValidRecurse(Node *node, bool prevSplit)
+      bool IsValidRecurse(Node<D, RGB> *node, bool prevSplit)
       {
 
         if (!node && prevSplit)
@@ -134,10 +134,10 @@ namespace ISUE {
 
       //  Evaluates weak learner. Decides whether the point should go left or right.
       //  Returns DECISION enum value.
-      DECISION eval_learner(DepthAdaptiveRGB feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
+      DECISION eval_learner(DepthAdaptiveRGB<D, RGB> feature, cv::Mat depth_image, cv::Mat rgb_image, cv::Point2i pos)
       {
         bool valid = true;
-        float response = feature.GetResponse(depth_image, rgb_image, pos, valid);
+        float response = feature.GetResponse(depth_image, rgb_image, pos, *settings_, valid);
 
         if (!valid) // no depth or out of bounds
           return DECISION::TRASH;
@@ -217,7 +217,7 @@ namespace ISUE {
       }
 
 
-      void train_recurse(Node *node, std::vector<LabeledPixel> S) 
+      void train_recurse(Node<D, RGB> *node, std::vector<LabeledPixel> S) 
       {
         uint16_t height = node->depth_;
         if (S.size() == 1 || ((height == settings_->max_tree_depth_ - 1) && S.size() >= 1)) {
@@ -233,14 +233,14 @@ namespace ISUE {
                 feature = 0;
         double minimum_objective = DBL_MAX;
 
-        std::vector<DepthAdaptiveRGB> candidate_params;
+        std::vector<DepthAdaptiveRGB<D, RGB> > candidate_params;
         std::vector<LabeledPixel> left_final, right_final;
 
 
         for (uint32_t i = 0; i < num_candidates; ++i) {
 
           // add candidate
-          candidate_params.push_back(DepthAdaptiveRGB::CreateRandom(random_));
+          candidate_params.push_back(DepthAdaptiveRGB<D, RGB>::CreateRandom(random_));
 
           // partition data with candidate
           std::vector<LabeledPixel> left_data, right_data;
@@ -296,8 +296,8 @@ namespace ISUE {
         node->is_split_ = true;
         node->is_leaf_ = false;
         node->feature_ = candidate_params.at(feature);
-        node->left_ = new Node();
-        node->right_ = new Node();
+        node->left_ = new Node<D, RGB>();
+        node->right_ = new Node<D, RGB>();
         node->left_->depth_ = node->right_->depth_ = node->depth_ + 1;
 
         train_recurse(node->left_, left_final);
@@ -312,7 +312,7 @@ namespace ISUE {
         train_recurse(root_, labeled_data);
       }
 
-      Eigen::Vector3d eval_recursive(Node **node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image, bool &valid)
+      Eigen::Vector3d eval_recursive(Node<D, RGB> **node, int row, int col, cv::Mat rgb_image, cv::Mat depth_image, bool &valid)
       {
         if ((*node)->is_leaf_) {
           return (*node)->mode_;
@@ -342,7 +342,7 @@ namespace ISUE {
 
 
     private:
-      Node *root_;
+      Node<D, RGB> *root_;
       Data *data_;
       Random *random_;
       Settings *settings_;
