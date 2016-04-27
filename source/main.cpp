@@ -9,7 +9,7 @@ using namespace ISUE::RelocForests;
 
 int main(int argc, char *argv[]) {
   if (argc < 2) {
-    cout << "Usage: ./relocforests <path_to_association_file> (train|test) <forest_file_name>\n";
+    cout << "Usage: ./relocforests_example <path_to_association_file> (train|test) <forest_file_name>\n";
     return 1;
   }
 
@@ -38,9 +38,9 @@ int main(int argc, char *argv[]) {
   if (argv[3])
     forest_file_name = string(argv[3]);
   else
-    cout << "Train and Test time requires an output file name.\n";
+    cout << "Train and Test time requires ouput/input forest file name.\n";
 
-  if (shouldTrain) {
+  if (train) {
     forest = new Forest<ushort, cv::Vec3b>(data, settings);
     forest->Train();
     forest->Serialize(forest_file_name);
@@ -52,31 +52,40 @@ int main(int argc, char *argv[]) {
     // load forest
     forest = new Forest<ushort, cv::Vec3b>(data, settings, "forest.rf");
 
-    cout << "Is forest valid:" << forest->IsValid() << endl;
+    // check if valid
+    if (forest->IsValid()) {
+      cout << "Forest is valid." << endl;
+    }
+    else {
+      cout << "Forest is not valid." << endl;
+      return 1;
+    }
+
+    // Todo: test each image in test dataset and provide relevent statistics about accuracy
 
     // eval forest at frame
     std::clock_t start;
     double duration;
     start = std::clock();
 
+    // test a single frame
     Eigen::Affine3d pose = forest->Test(data->GetRGBImage(200), data->GetDepthImage(200));
 
     duration = (std::clock() - start) / (double)CLOCKS_PER_SEC;
-    cout << "Train time: " << duration << " Seconds \n";
+    cout << "Test time: " << duration << " Seconds \n";
 
-    // compare pose to known value 
-    auto known_pose = data->GetPose(200);
+    // compare pose to groundtruth value 
+    auto ground_truth = data->GetPose(200);
 
-    cout << "found pose:" << endl;
+    cout << "Evaluated Pose:" << endl;
     cout << pose.rotation() << endl << endl;
     cout << pose.rotation().eulerAngles(0, 1, 2) * 180 / M_PI << endl;
     cout << pose.translation() << endl;
 
-    cout << "known pose:" << endl;
-    cout << known_pose.rotation << endl;
-    cout << known_pose.rotation.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
-    cout << known_pose.position << endl;
-
+    cout << "Ground Truth:" << endl;
+    cout << ground_truth.rotation << endl;
+    cout << ground_truth.rotation.eulerAngles(0, 1, 2) * 180 / M_PI << endl;
+    cout << ground_truth.position << endl;
   }
 
   delete forest;

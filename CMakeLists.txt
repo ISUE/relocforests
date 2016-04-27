@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(relocforests)
 
-option(BUILD_EXAMPLE "Build example application" OFF)
+option(BUILD_EXAMPLE "Build example application" ON)
 
 if(MSVC)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
@@ -15,7 +15,7 @@ include_directories(include/)
 include_directories("$ENV{EIGEN_DIR}") # set EIGEN_DIR env variable
 
 file(GLOB PROJECT_HEADERS	include/*.hpp)
-file(GLOB PROJECT_SOURCES	source/*.cpp)
+file(GLOB PROJECT_SOURCES	source/MeanShift.cpp)
 
 source_group("Headers" FILES ${PROJECT_HEADERS})
 source_group("Sources" FILES ${PROJECT_SOURCES})

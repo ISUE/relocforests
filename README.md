@@ -29,6 +29,22 @@ cmake -G "Visual Studio 14 Win64" ..
 ...
 ```
 
+# Usage of Example Application
+
+The example application takes input frames and poses from the [TUM RGBD datasets](http://vision.in.tum.de/data/datasets/rgbd-dataset),
+and requires that your create an [association file](http://vision.in.tum.de/data/datasets/rgbd-dataset/tools) to associate the RGB, Depth, and pose information.
+Instructions for this process can be found [here](https://github.com/tum-vision/fastfusion).
+
+```
+# Training
+# depeding on your setup this could take upwards of 10 minutes to train
+$ ./relocforests_example ~/data/rgbd_dataset_freiburg1_desk/ train desk1.rf 
+
+# Testing
+# test the forest we created with a different dataset
+$ ./relocforests_example ~/data/rgbd_dataset_freiburg1_desk2/ test desk1.rf 
+```
+
 
 ## Citations
 ```
