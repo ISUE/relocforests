@@ -40,6 +40,9 @@ namespace ISUE {
         random_ = new Random();
 
         std::ifstream i(path, std::ios_base::binary);
+        if (!i.is_open()) {
+          throw std::runtime_error("Unable to open file");
+        }
         this->Deserialize(i);
       }
 

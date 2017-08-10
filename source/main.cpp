@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
   else {
 
     // load forest
-    forest = new Forest<ushort, cv::Vec3b>(data, settings, "forest.rf");
+    forest = new Forest<ushort, cv::Vec3b>(data, settings, forest_file_name);
 
     // check if valid
     if (forest->IsValid()) {
